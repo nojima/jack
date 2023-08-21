@@ -52,4 +52,8 @@ fn parse_test() {
     verify("[null]", "[null]");
     verify("[1, 2]", "[1.0, 2.0]");
     verify("[true,]", "[true]");
+
+    verify("{}", "{}");
+    verify("{foo: true}", "{\"foo\": true}");
+    verify("{aaa: 1.0, bbb: 2.0}", "{\"aaa\": 1.0, \"bbb\": 2.0}");
 }
