@@ -1,4 +1,7 @@
-use std::{fmt::{Debug, Formatter, Error}, collections::HashMap};
+use std::{
+    collections::HashMap,
+    fmt::{Debug, Error, Formatter},
+};
 
 pub enum Expr {
     Null,
@@ -30,7 +33,7 @@ impl Debug for Expr {
                     write!(fmt, "{x:?}")?;
                 }
                 write!(fmt, "]")
-            },
+            }
 
             Dict(ref dict) => {
                 write!(fmt, "{{")?;

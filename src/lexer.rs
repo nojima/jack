@@ -1,8 +1,8 @@
-use std::str::Chars;
-use std::str::FromStr;
-use std::fmt::Display;
 use once_cell::sync::Lazy;
 use regex::Regex;
+use std::fmt::Display;
+use std::str::Chars;
+use std::str::FromStr;
 
 use crate::token::Token;
 
@@ -72,18 +72,26 @@ impl<'input> Lexer<'input> {
         Ok((span_lo, token, span_hi))
     }
 
-    fn error(&mut self, span_lo: Pos, span_hi: Pos, message: impl Into<String>) -> Result<Spanned<Token>> {
+    fn error(
+        &mut self,
+        span_lo: Pos,
+        span_hi: Pos,
+        message: impl Into<String>,
+    ) -> Result<Spanned<Token>> {
         self.move_to(span_hi);
         Err(LexicalError::new(span_lo, span_hi, message.into()))
     }
 
     fn numeric_literal(&mut self, lo: Pos) -> Result<Spanned<Token>> {
-        static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?x)
-            ^-?                 # sign
-            (0|[1-9][0-9]*)     # integer
-            ([.][0-9]+|)        # fraction
-            ([eE][-+]?[0-9]+|)  # exponent
-        ").unwrap());
+        #[rustfmt::skip]
+        static RE: Lazy<Regex> = Lazy::new(|| {
+            Regex::new(r"(?x)
+                ^-?                 # sign
+                (0|[1-9][0-9]*)     # integer
+                ([.][0-9]+|)        # fraction
+                ([eE][-+]?[0-9]+|)  # exponent
+            ").unwrap()
+        });
 
         let Some(m) = RE.find(self.chars.as_str()) else {
             return self.error(lo, lo+1, "invalid numeric literal");
@@ -124,25 +132,23 @@ impl<'input> Iterator for Lexer<'input> {
                     continue;
                 }
 
-                ':' => Some(self.ok(Token::Colon, pos, pos+1)),
-                ',' => Some(self.ok(Token::Comma, pos, pos+1)),
-                '[' => Some(self.ok(Token::LBracket, pos, pos+1)),
-                ']' => Some(self.ok(Token::RBracket, pos, pos+1)),
-                '{' => Some(self.ok(Token::LBrace, pos, pos+1)),
-                '}' => Some(self.ok(Token::RBrace, pos, pos+1)),
+                ':' => Some(self.ok(Token::Colon, pos, pos + 1)),
+                ',' => Some(self.ok(Token::Comma, pos, pos + 1)),
+                '[' => Some(self.ok(Token::LBracket, pos, pos + 1)),
+                ']' => Some(self.ok(Token::RBracket, pos, pos + 1)),
+                '{' => Some(self.ok(Token::LBrace, pos, pos + 1)),
+                '}' => Some(self.ok(Token::RBrace, pos, pos + 1)),
 
                 ch if ch.is_ascii_digit() || (ch == '-' && self.second().is_ascii_digit()) => {
                     Some(self.numeric_literal(pos))
                 }
 
-                ch if ch.is_ascii_alphabetic() => {
-                    Some(self.identifier_or_reserved(pos))
-                }
+                ch if ch.is_ascii_alphabetic() => Some(self.identifier_or_reserved(pos)),
 
                 ch => {
-                    return Some(self.error(pos, pos+1, format!("unexpected character: '{ch}'")));
+                    return Some(self.error(pos, pos + 1, format!("unexpected character: '{ch}'")));
                 }
-            }
+            };
         }
     }
 }

@@ -1,9 +1,9 @@
-mod token;
-mod lexer;
 mod ast;
+mod lexer;
+mod token;
 
-use std::io::{self, Write};
 use lalrpop_util::lalrpop_mod;
+use std::io::{self, Write};
 
 lalrpop_mod!(pub syntax);
 
@@ -17,7 +17,8 @@ fn main() -> io::Result<()> {
 
         buffer.clear();
         let n = stdin.read_line(&mut buffer)?;
-        if n == 0 { // EOF
+        if n == 0 {
+            // EOF
             return Ok(());
         }
 
