@@ -1,3 +1,5 @@
+mod token;
+mod lexer;
 mod ast;
 
 use std::io::{self, Write};
@@ -19,8 +21,9 @@ fn main() -> io::Result<()> {
             return Ok(());
         }
 
+        let lexer = lexer::Lexer::new(&buffer);
         let parser = syntax::ExprParser::new();
-        println!("{:?}", parser.parse(&buffer));
+        println!("{:?}", parser.parse(lexer));
         println!();
     }
 }
@@ -28,8 +31,9 @@ fn main() -> io::Result<()> {
 #[test]
 fn parse_test() {
     let verify = |source: &str, expected: &str| {
-        let parser = syntax::ExprParser::new();       
-        let maybe_ast = parser.parse(source);
+        let parser = syntax::ExprParser::new();
+        let lexer = lexer::Lexer::new(source);
+        let maybe_ast = parser.parse(lexer);
         let actual = maybe_ast.map(|ast| format!("{:?}", ast));
         assert_eq!(actual, Ok(expected.to_owned()));
     };
@@ -56,4 +60,6 @@ fn parse_test() {
     verify("{}", "{}");
     verify("{foo: true}", "{\"foo\": true}");
     verify("{aaa: 1.0, bbb: 2.0}", "{\"aaa\": 1.0, \"bbb\": 2.0}");
+
+    //verify("\"hello\"", "\"hello\"")
 }

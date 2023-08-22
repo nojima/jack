@@ -4,6 +4,7 @@ pub enum Expr {
     Null,
     Bool(bool),
     Number(f64),
+    Str(String),
     Array(Vec<Expr>),
     Dict(HashMap<String, Expr>),
 }
@@ -15,6 +16,7 @@ impl Debug for Expr {
             Null => write!(fmt, "null"),
             Bool(b) => write!(fmt, "{:?}", b),
             Number(n) => write!(fmt, "{:?}", n),
+            Str(ref s) => write!(fmt, "{s:?}"),
 
             Array(ref v) => {
                 write!(fmt, "[")?;
