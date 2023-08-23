@@ -1,154 +1,128 @@
-use once_cell::sync::Lazy;
-use regex::Regex;
-use std::fmt::Display;
-use std::str::Chars;
-use std::str::FromStr;
-
 use crate::token::Token;
-
-pub type Pos = usize;
-pub type Spanned<T> = (Pos, T, Pos);
-pub type Result<T> = std::result::Result<T, LexicalError>;
+use regex::Regex;
+use std::str::FromStr;
+use std::sync::OnceLock;
 
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
-pub struct LexicalError {
-    lo: Pos,
-    hi: Pos,
-    message: String,
+pub enum LexicalError {
+    #[error("unexpected character: {0}")]
+    UnexpectedCharacter(char),
+
+    #[error("unexpected end of file")]
+    UnexpectedEndOfFile,
 }
 
-impl LexicalError {
-    pub fn new(lo: Pos, hi: Pos, message: String) -> Self {
-        Self { lo, hi, message }
+// Success: Ok(Some((token, bytes_consumed)))
+// Failure: Err(LexicalError)
+// EOF:     Ok(None)
+type LexResult = Result<Option<(Token, usize)>, LexicalError>;
+
+fn ok(token: Token, bytes_consumed: usize) -> LexResult {
+    Ok(Some((token, bytes_consumed)))
+}
+
+fn err(e: LexicalError) -> LexResult {
+    Err(e)
+}
+
+fn eof() -> LexResult {
+    Ok(None)
+}
+
+macro_rules! static_regex {
+    ($pattern:expr) => {{
+        static RE: OnceLock<Regex> = OnceLock::new();
+        RE.get_or_init(|| Regex::new($pattern).unwrap())
+    }};
+}
+
+// Cuts a single token from `input` and returns `(token, bytes_consumed)`.
+fn lex(input: &str) -> LexResult {
+    let Some(first) = input.chars().next() else {
+        return eof();
+    };
+    match first {
+        ':' => return ok(Token::Colon, 1),
+        ',' => return ok(Token::Comma, 1),
+        '[' => return ok(Token::LBracket, 1),
+        ']' => return ok(Token::RBracket, 1),
+        '{' => return ok(Token::LBrace, 1),
+        '}' => return ok(Token::RBrace, 1),
+        _ => {}
     }
+
+    let re_identifier_or_reserved = static_regex!("^[a-zA-Z_][a-zA-Z0-9_]*");
+    if let Some(m) = re_identifier_or_reserved.find(input) {
+        let s = m.as_str();
+        let token = match s {
+            "null" => Token::Null,
+            "true" => Token::True,
+            "false" => Token::False,
+            _ => Token::Identifier(s.to_owned()),
+        };
+        return ok(token, m.end());
+    }
+
+    #[rustfmt::skip]
+    let re_number = static_regex!(r"(?x)^
+        -?                  # sign
+        (0|[1-9][0-9]*)     # integer
+        ([.][0-9]+)?        # fraction
+        ([eE][-+]?[0-9]+)?  # exponent
+    ");
+    if let Some(m) = re_number.find(input) {
+        let n = f64::from_str(m.as_str()).unwrap();
+        return ok(Token::Number(n), m.end());
+    }
+
+    err(LexicalError::UnexpectedCharacter(first))
 }
 
-impl Display for LexicalError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "LexicalError({}:{}): {}", self.lo, self.hi, self.message)
+// Same as `lex` except that it ignores leading whitespaces.
+fn lex_strip(input: &str) -> LexResult {
+    let re_whitespaces = static_regex!(r"^[\t\n\r ]+");
+    match re_whitespaces.find(input) {
+        None => lex(input),
+        Some(m) => {
+            let r = lex(&input[m.end()..]);
+            match r {
+                Ok(Some((token, bytes_consumed))) => ok(token, m.end() + bytes_consumed),
+                _ => r,
+            }
+        }
     }
 }
 
 pub struct Lexer<'input> {
-    chars: Chars<'input>,
-    input_len: usize,
+    input: &'input str,
+    bytes_consumed: usize,
 }
 
 impl<'input> Lexer<'input> {
     pub fn new(input: &'input str) -> Self {
         Self {
-            chars: input.chars(),
-            input_len: input.len(),
-        }
-    }
-}
-
-impl<'input> Lexer<'input> {
-    fn bump(&mut self) -> Option<char> {
-        self.chars.next()
-    }
-
-    fn move_to(&mut self, i: Pos) {
-        let diff = i - self.pos();
-        self.chars = self.chars.as_str()[diff..].chars();
-    }
-
-    fn pos(&self) -> Pos {
-        self.input_len - self.chars.as_str().len()
-    }
-
-    fn first(&self) -> char {
-        self.chars.clone().next().unwrap_or('\0')
-    }
-
-    fn second(&self) -> char {
-        let mut iter = self.chars.clone();
-        iter.next();
-        iter.next().unwrap_or('\0')
-    }
-
-    fn ok(&mut self, token: Token, span_lo: Pos, span_hi: Pos) -> Result<Spanned<Token>> {
-        self.move_to(span_hi);
-        Ok((span_lo, token, span_hi))
-    }
-
-    fn error(
-        &mut self,
-        span_lo: Pos,
-        span_hi: Pos,
-        message: impl Into<String>,
-    ) -> Result<Spanned<Token>> {
-        self.move_to(span_hi);
-        Err(LexicalError::new(span_lo, span_hi, message.into()))
-    }
-
-    fn numeric_literal(&mut self, lo: Pos) -> Result<Spanned<Token>> {
-        #[rustfmt::skip]
-        static RE: Lazy<Regex> = Lazy::new(|| {
-            Regex::new(r"(?x)
-                ^-?                 # sign
-                (0|[1-9][0-9]*)     # integer
-                ([.][0-9]+|)        # fraction
-                ([eE][-+]?[0-9]+|)  # exponent
-            ").unwrap()
-        });
-
-        let Some(m) = RE.find(self.chars.as_str()) else {
-            return self.error(lo, lo+1, "invalid numeric literal");
-        };
-        let n = f64::from_str(m.as_str()).unwrap();
-        self.ok(Token::Number(n), lo, lo + m.len())
-    }
-
-    fn identifier_or_reserved(&mut self, lo: Pos) -> Result<Spanned<Token>> {
-        static RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"^[a-zA-Z_][a-zA-Z0-9_]*").unwrap());
-
-        let Some(m) = RE.find(self.chars.as_str()) else {
-            panic!("bug");
-        };
-        let hi = lo + m.len();
-        match m.as_str() {
-            "true" => self.ok(Token::True, lo, hi),
-            "false" => self.ok(Token::False, lo, hi),
-            "null" => self.ok(Token::Null, lo, hi),
-            s => self.ok(Token::Identifier(s.to_owned()), lo, hi),
+            input,
+            bytes_consumed: 0,
         }
     }
 }
 
 impl<'input> Iterator for Lexer<'input> {
-    type Item = Result<Spanned<Token>>;
+    type Item = Result<(usize, Token, usize), LexicalError>;
 
     fn next(&mut self) -> Option<Self::Item> {
-        loop {
-            let ch = self.first();
-            let pos = self.pos();
-            return match ch {
-                '\0' => return None,
-
-                // skip whitespaces.
-                ch if ch.is_ascii_whitespace() => {
-                    self.bump();
-                    continue;
-                }
-
-                ':' => Some(self.ok(Token::Colon, pos, pos + 1)),
-                ',' => Some(self.ok(Token::Comma, pos, pos + 1)),
-                '[' => Some(self.ok(Token::LBracket, pos, pos + 1)),
-                ']' => Some(self.ok(Token::RBracket, pos, pos + 1)),
-                '{' => Some(self.ok(Token::LBrace, pos, pos + 1)),
-                '}' => Some(self.ok(Token::RBrace, pos, pos + 1)),
-
-                ch if ch.is_ascii_digit() || (ch == '-' && self.second().is_ascii_digit()) => {
-                    Some(self.numeric_literal(pos))
-                }
-
-                ch if ch.is_ascii_alphabetic() => Some(self.identifier_or_reserved(pos)),
-
-                ch => {
-                    return Some(self.error(pos, pos + 1, format!("unexpected character: '{ch}'")));
-                }
-            };
+        match lex_strip(&self.input[self.bytes_consumed..]) {
+            // Success
+            Ok(Some((token, bytes_consumed))) => {
+                let span_start = self.bytes_consumed;
+                let span_end = self.bytes_consumed + bytes_consumed;
+                self.bytes_consumed = span_end;
+                Some(Ok((span_start, token, span_end)))
+            }
+            // Failure
+            Err(e) => Some(Err(e)),
+            // EOF
+            Ok(None) => None,
         }
     }
 }

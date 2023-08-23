@@ -39,7 +39,7 @@ KeyValue: (String, Expr) =
 Identifier: String = "identifier";
  
 extern {
-    type Location = lexer::Pos;
+    type Location = usize;
     type Error = lexer::LexicalError;
 
     enum token::Token {
