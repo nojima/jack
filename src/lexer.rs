@@ -10,6 +10,9 @@ pub enum LexicalError {
 
     #[error("unexpected end of file")]
     UnexpectedEndOfFile,
+
+    #[error("undefined escape: '\\{0}'")]
+    UndefinedEscape(char),
 }
 
 // Success: Ok(Some((token, bytes_consumed)))
@@ -75,7 +78,48 @@ fn lex(input: &str) -> LexResult {
         return ok(Token::Number(n), m.end());
     }
 
+    if input.starts_with('"') {
+        return lex_string_literal(input);
+    }
+
     err(LexicalError::UnexpectedCharacter(first))
+}
+
+fn lex_string_literal(input: &str) -> LexResult {
+    let mut chars = input.chars();
+    assert_eq!(chars.next(), Some('"'));
+
+    let mut string_closed = false;
+    let mut buffer = String::new();
+    while let Some(c) = chars.next() {
+        match c {
+            '\\' => {
+                let Some(c2) = chars.next() else {
+                    return Err(LexicalError::UnexpectedEndOfFile);
+                };
+                match c2 {
+                    '"' => buffer.push('"'),
+                    '\\' => buffer.push('\\'),
+                    '/' => buffer.push('/'),
+                    'n' => buffer.push('\n'),
+                    'r' => buffer.push('\r'),
+                    't' => buffer.push('\t'),
+                    _ => return Err(LexicalError::UndefinedEscape(c2)),
+                }
+            }
+            '"' => {
+                string_closed = true;
+                break;
+            }
+            _ => buffer.push(c),
+        }
+    }
+    if !string_closed {
+        return Err(LexicalError::UnexpectedEndOfFile);
+    }
+
+    let bytes_consumed = input.len() - chars.as_str().len();
+    ok(Token::String(buffer.into()), bytes_consumed)
 }
 
 // Same as `lex` except that it ignores leading whitespaces.

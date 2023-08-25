@@ -1,20 +1,11 @@
 use std::collections::HashMap;
+use crate::token::Token;
 use crate::ast::Expr;
 use crate::lexer;
-use crate::token;
 
 grammar;
 
-pub Expr: Expr = {
-    "true"  => Expr::Bool(true),
-    "false" => Expr::Bool(false),
-    "null"  => Expr::Null,
-    Number  => Expr::Number(<>),
-    Array   => Expr::Array(<>),
-    Dict    => Expr::Dict(<>),
-};
-
-Number: f64 = "number literal";
+//-----------------------------------------------------------------------------
 
 CommaSeparated<T>: Vec<T> = {
     <mut v:(<T> ",")*> <e:T?> => match e {
@@ -26,6 +17,24 @@ CommaSeparated<T>: Vec<T> = {
     }
 };
 
+//-----------------------------------------------------------------------------
+
+pub Expr: Expr = {
+    "true"  => Expr::Bool(true),
+    "false" => Expr::Bool(false),
+    "null"  => Expr::Null,
+    Number  => Expr::Number(<>),
+    String  => Expr::String(<>),
+    Array   => Expr::Array(<>),
+    Dict    => Expr::Dict(<>),
+};
+
+Number: f64 = "number literal";
+
+String: String = "string literal";
+
+Identifier: String = "identifier";
+
 Array: Vec<Expr> =
     "[" <CommaSeparated<Expr>> "]";
 
@@ -34,28 +43,26 @@ Dict: HashMap<String, Expr> =
         <>.into_iter().collect();
 
 KeyValue: (String, Expr) =
-    <k:Identifier> ":" <v:Expr> => (k, v);
-
-Identifier: String = "identifier";
+    <k:String> ":" <v:Expr> => (k, v);
  
 extern {
     type Location = usize;
     type Error = lexer::LexicalError;
 
-    enum token::Token {
-        "true"  => token::Token::True,
-        "false" => token::Token::False,
-        "null"  => token::Token::Null,
+    enum Token {
+        "true"  => Token::True,
+        "false" => Token::False,
+        "null"  => Token::Null,
 
-        "number literal" => token::Token::Number(<f64>),
-        "string literal" => token::Token::Str(<String>),
-        "identifier"     => token::Token::Identifier(<String>),
+        "number literal" => Token::Number(<f64>),
+        "string literal" => Token::String(<String>),
+        "identifier"     => Token::Identifier(<String>),
 
-        ":" => token::Token::Colon,
-        "," => token::Token::Comma,
-        "[" => token::Token::LBracket,
-        "]" => token::Token::RBracket,
-        "{" => token::Token::LBrace,
-        "}" => token::Token::RBrace,
+        ":" => Token::Colon,
+        "," => Token::Comma,
+        "[" => Token::LBracket,
+        "]" => Token::RBracket,
+        "{" => Token::LBrace,
+        "}" => Token::RBrace,
     }
 }

@@ -7,21 +7,20 @@ pub enum Expr {
     Null,
     Bool(bool),
     Number(f64),
-    Str(String),
+    String(String),
     Array(Vec<Expr>),
     Dict(HashMap<String, Expr>),
 }
 
 impl Debug for Expr {
     fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
-        use self::Expr::*;
-        match *self {
-            Null => write!(fmt, "null"),
-            Bool(b) => write!(fmt, "{:?}", b),
-            Number(n) => write!(fmt, "{:?}", n),
-            Str(ref s) => write!(fmt, "{s:?}"),
+        match self {
+            Expr::Null => write!(fmt, "null"),
+            Expr::Bool(b) => write!(fmt, "{:?}", b),
+            Expr::Number(n) => write!(fmt, "{:?}", n),
+            Expr::String(s) => write!(fmt, "{s:?}"),
 
-            Array(ref v) => {
+            Expr::Array(v) => {
                 write!(fmt, "[")?;
                 let mut first = true;
                 for x in v {
@@ -35,7 +34,7 @@ impl Debug for Expr {
                 write!(fmt, "]")
             }
 
-            Dict(ref dict) => {
+            Expr::Dict(dict) => {
                 write!(fmt, "{{")?;
 
                 // sort elements by key to fix iteration order.

@@ -62,5 +62,5 @@ fn parse_test() {
     verify("{foo: true}", "{\"foo\": true}");
     verify("{aaa: 1.0, bbb: 2.0}", "{\"aaa\": 1.0, \"bbb\": 2.0}");
 
-    //verify("\"hello\"", "\"hello\"")
+    verify("\"hello\"", "\"hello\"")
 }

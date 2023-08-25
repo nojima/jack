@@ -4,7 +4,7 @@ pub enum Token {
     False,
     Null,
     Number(f64),
-    Str(String),
+    String(String),
     Identifier(String),
 
     Colon,
