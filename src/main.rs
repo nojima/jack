@@ -5,11 +5,41 @@ mod symbol;
 mod token;
 mod value;
 
+use std::{path::{PathBuf, Path}, fs};
+
+use clap::Parser;
 use lalrpop_util::lalrpop_mod;
 
 lalrpop_mod!(pub syntax);
 
+#[derive(clap::Parser)]
+#[command(name = "jack")]
+#[command(author = "Yusuke Nojima")]
+#[command(about = "A JSON Generation Language")]
+struct Cli {
+    filename: Option<PathBuf>,
+}
+
 fn main() -> anyhow::Result<()> {
+    let cli = Cli::parse();
+    match cli.filename {
+        Some(filename) => execute_file(&filename),
+        None => repl(),
+    }
+}
+
+fn execute_file(filename: &Path) -> anyhow::Result<()> {
+    let source_code = fs::read_to_string(filename)?;
+    let lexer = lexer::Lexer::new(&source_code);
+    let parser = syntax::ExprParser::new();
+    let node = parser.parse(lexer)?;
+    let env = eval::Env::new();
+    let value = eval::eval_expr(&env, &node)?;
+    println!("{value:?}");
+    Ok(())
+}
+
+fn repl() -> anyhow::Result<()> {
     let mut rl = rustyline::DefaultEditor::new()?;
     let env = eval::Env::new();
 
