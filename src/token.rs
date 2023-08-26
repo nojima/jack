@@ -9,8 +9,15 @@ pub enum Token {
 
     Colon,
     Comma,
+    LParen,
+    RParen,
     LBracket,
     RBracket,
     LBrace,
     RBrace,
+    Plus,
+    Minus,
+    Asterisk,
+    Slash,
+    Percent,
 }

@@ -1,7 +1,7 @@
-use std::collections::HashMap;
-use crate::token::Token;
-use crate::ast::Expr;
+use crate::ast::{Expr, UnaryOp, BinaryOp};
 use crate::lexer;
+use crate::token::Token;
+use std::collections::HashMap;
 
 grammar;
 
@@ -19,7 +19,43 @@ CommaSeparated<T>: Vec<T> = {
 
 //-----------------------------------------------------------------------------
 
-pub Expr: Expr = {
+pub Expr: Expr = 
+    AddExpr;
+
+AddExpr: Expr = {
+    MulExpr,
+    <lhs:AddExpr> <op:AddOp> <rhs:MulExpr>
+        => Expr::BinaryOp(op, Box::new(lhs), Box::new(rhs)),
+};
+
+AddOp: BinaryOp = {
+    "+" => BinaryOp::Add,
+    "-" => BinaryOp::Sub,
+};
+
+MulExpr: Expr = {
+    UnaryExpr,
+    <lhs:MulExpr> <op:MulOp> <rhs:UnaryExpr>
+        => Expr::BinaryOp(op, Box::new(lhs), Box::new(rhs)),
+};
+
+MulOp: BinaryOp = {
+    "*" => BinaryOp::Mul,
+    "/" => BinaryOp::Div,
+    "%" => BinaryOp::Mod,
+};
+
+UnaryExpr: Expr = {
+    Term,
+    "-" <Term> => Expr::UnaryOp(UnaryOp::Neg, Box::new(<>)),
+};
+
+Term: Expr = {
+    Literal,
+    "(" <Expr> ")",
+};
+
+Literal: Expr = {
     "true"  => Expr::Bool(true),
     "false" => Expr::Bool(false),
     "null"  => Expr::Null,
@@ -60,9 +96,16 @@ extern {
 
         ":" => Token::Colon,
         "," => Token::Comma,
+        "(" => Token::LParen,
+        ")" => Token::RParen,
         "[" => Token::LBracket,
         "]" => Token::RBracket,
         "{" => Token::LBrace,
         "}" => Token::RBrace,
+        "+" => Token::Plus,
+        "-" => Token::Minus,
+        "*" => Token::Asterisk,
+        "/" => Token::Slash,
+        "%" => Token::Percent,
     }
 }

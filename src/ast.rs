@@ -10,32 +10,35 @@ pub enum Expr {
     String(String),
     Array(Vec<Expr>),
     Dict(HashMap<String, Expr>),
+
+    UnaryOp(UnaryOp, Box<Expr>),
+    BinaryOp(BinaryOp, Box<Expr>, Box<Expr>),
 }
 
 impl Debug for Expr {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
+    fn fmt(&self, f: &mut Formatter) -> Result<(), Error> {
         match self {
-            Expr::Null => write!(fmt, "null"),
-            Expr::Bool(b) => write!(fmt, "{:?}", b),
-            Expr::Number(n) => write!(fmt, "{:?}", n),
-            Expr::String(s) => write!(fmt, "{s:?}"),
+            Expr::Null => write!(f, "null"),
+            Expr::Bool(b) => write!(f, "{:?}", b),
+            Expr::Number(n) => write!(f, "{:?}", n),
+            Expr::String(s) => write!(f, "{s:?}"),
 
             Expr::Array(v) => {
-                write!(fmt, "[")?;
+                write!(f, "[")?;
                 let mut first = true;
                 for x in v {
                     if first {
                         first = false;
                     } else {
-                        write!(fmt, ", ")?;
+                        write!(f, ", ")?;
                     }
-                    write!(fmt, "{x:?}")?;
+                    write!(f, "{x:?}")?;
                 }
-                write!(fmt, "]")
+                write!(f, "]")
             }
 
             Expr::Dict(dict) => {
-                write!(fmt, "{{")?;
+                write!(f, "{{")?;
 
                 // sort elements by key to fix iteration order.
                 let mut seq: Vec<(&String, &Expr)> = dict.iter().collect();
@@ -46,33 +49,29 @@ impl Debug for Expr {
                     if first {
                         first = false;
                     } else {
-                        write!(fmt, ", ")?;
+                        write!(f, ", ")?;
                     }
-                    write!(fmt, "{k:?}: {v:?}")?;
+                    write!(f, "{k:?}: {v:?}")?;
                 }
-                write!(fmt, "}}")
+                write!(f, "}}")
             }
+
+            Expr::UnaryOp(op, expr) => write!(f, "{op:?}({expr:?})"),
+            Expr::BinaryOp(op, lhs, rhs) => write!(f, "{op:?}({lhs:?}, {rhs:?})"),
         }
     }
 }
 
-#[allow(dead_code)]
-#[derive(Copy, Clone, PartialEq, Eq)]
-pub enum Opcode {
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum UnaryOp {
+    Neg,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub enum BinaryOp {
     Add,
     Sub,
     Mul,
     Div,
-}
-
-impl Debug for Opcode {
-    fn fmt(&self, fmt: &mut Formatter) -> Result<(), Error> {
-        use self::Opcode::*;
-        match *self {
-            Add => write!(fmt, "+"),
-            Sub => write!(fmt, "-"),
-            Mul => write!(fmt, "*"),
-            Div => write!(fmt, "/"),
-        }
-    }
+    Mod,
 }

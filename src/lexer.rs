@@ -47,10 +47,17 @@ fn lex(input: &str) -> LexResult {
     match first {
         ':' => return ok(Token::Colon, 1),
         ',' => return ok(Token::Comma, 1),
+        '(' => return ok(Token::LParen, 1),
+        ')' => return ok(Token::RParen, 1),
         '[' => return ok(Token::LBracket, 1),
         ']' => return ok(Token::RBracket, 1),
         '{' => return ok(Token::LBrace, 1),
         '}' => return ok(Token::RBrace, 1),
+        '+' => return ok(Token::Plus, 1),
+        '-' => return ok(Token::Minus, 1),
+        '*' => return ok(Token::Asterisk, 1),
+        '/' => return ok(Token::Slash, 1),
+        '%' => return ok(Token::Percent, 1),
         _ => {}
     }
 
@@ -68,7 +75,6 @@ fn lex(input: &str) -> LexResult {
 
     #[rustfmt::skip]
     let re_number = static_regex!(r"(?x)^
-        -?                  # sign
         (0|[1-9][0-9]*)     # integer
         ([.][0-9]+)?        # fraction
         ([eE][-+]?[0-9]+)?  # exponent
