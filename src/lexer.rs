@@ -45,6 +45,7 @@ fn lex(input: &str) -> LexResult {
         return eof();
     };
     match first {
+        '.' => return ok(Token::Dot, 1),
         ':' => return ok(Token::Colon, 1),
         ';' => return ok(Token::Semicolon, 1),
         ',' => return ok(Token::Comma, 1),

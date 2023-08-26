@@ -15,6 +15,7 @@ pub enum Token {
     Else,
     Local,
 
+    Dot,
     Colon,
     Semicolon,
     Comma,

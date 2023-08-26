@@ -68,8 +68,13 @@ MulOp: BinaryOp = {
 };
 
 UnaryExpr: Expr = {
+    PostfixExpr,
+    "-" <PostfixExpr> => Expr::UnaryOp(UnaryOp::Neg, Box::new(<>)),
+};
+
+PostfixExpr: Expr = {
     Term,
-    "-" <Term> => Expr::UnaryOp(UnaryOp::Neg, Box::new(<>)),
+    <expr:PostfixExpr> "." <name:Identifier> => Expr::FieldAccess(Box::new(expr), name),
 };
 
 Term: Expr = {
@@ -129,6 +134,7 @@ extern {
         "string literal" => Token::String(<String>),
         "identifier"     => Token::Identifier(<CompactString>),
 
+        "." => Token::Dot,
         ":" => Token::Colon,
         ";" => Token::Semicolon,
         "," => Token::Comma,

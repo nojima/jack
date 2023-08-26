@@ -14,6 +14,9 @@ pub enum EvalError {
 
     #[error("undefined variable: {0}")]
     UndefinedVariable(Symbol),
+
+    #[error("field does not exit: {0}")]
+    FieldDoesNotExist(Symbol),
 }
 
 #[derive(Clone)]
@@ -42,19 +45,20 @@ impl Env {
 type Result<T> = std::result::Result<T, EvalError>;
 
 pub fn eval_expr(env: &Env, expr: &Expr) -> Result<Value> {
-    Ok(match expr {
-        Expr::Null => Value::Null,
-        Expr::Bool(b) => Value::Bool(*b),
-        Expr::Number(n) => Value::Number(*n),
-        Expr::String(s) => Value::String(s.clone()),
-        Expr::Array(array) => eval_array(env, array)?,
-        Expr::Dict(key_values) => eval_dict(env, key_values)?,
-        Expr::Variable(name) => eval_variable(env, name)?,
-        Expr::UnaryOp(op, expr) => eval_unary_op(env, *op, expr)?,
-        Expr::BinaryOp(op, lhs, rhs) => eval_binary_op(env, *op, lhs, rhs)?,
-        Expr::If(cond, then, else_) => eval_if(env, cond, then, else_)?,
-        Expr::Local(name, expr1, expr2) => eval_local(env, name, expr1, expr2)?,
-    })
+    match expr {
+        Expr::Null => Ok(Value::Null),
+        Expr::Bool(b) => Ok(Value::Bool(*b)),
+        Expr::Number(n) => Ok(Value::Number(*n)),
+        Expr::String(s) => Ok(Value::String(s.clone())),
+        Expr::Array(array) => eval_array(env, array),
+        Expr::Dict(key_values) => eval_dict(env, key_values),
+        Expr::Variable(name) => eval_variable(env, name),
+        Expr::UnaryOp(op, expr) => eval_unary_op(env, *op, expr),
+        Expr::BinaryOp(op, lhs, rhs) => eval_binary_op(env, *op, lhs, rhs),
+        Expr::If(cond, then, else_) => eval_if(env, cond, then, else_),
+        Expr::Local(name, expr1, expr2) => eval_local(env, name, expr1, expr2),
+        Expr::FieldAccess(expr, name) => eval_field_access(env, expr, name),
+    }
 }
 
 fn eval_array(env: &Env, array: &[Expr]) -> Result<Value> {
@@ -179,4 +183,15 @@ fn eval_local(env: &Env, name: &Symbol, expr1: &Expr, expr2: &Expr) -> Result<Va
     let value = eval_expr(env, expr1)?;
     let new_env = env.with_variable(name.clone(), value);
     eval_expr(&new_env, expr2)
+}
+
+fn eval_field_access(env: &Env, expr: &Expr, name: &Symbol) -> Result<Value> {
+    let value1 = eval_expr(env, expr)?;
+    match value1 {
+        Value::Dict(dict) => match dict.get(name) {
+            Some(value2) => Ok(value2.clone()),
+            None => Err(EvalError::FieldDoesNotExist(name.clone())),
+        },
+        _ => Err(EvalError::BadOperandType),
+    }
 }

@@ -18,6 +18,8 @@ pub enum Expr {
 
     If(Box<Expr>, Box<Expr>, Box<Expr>),
     Local(Symbol, Box<Expr>, Box<Expr>),
+
+    FieldAccess(Box<Expr>, Symbol),
 }
 
 impl Debug for Expr {
@@ -64,6 +66,8 @@ impl Debug for Expr {
 
             Expr::If(cond, then, else_) => write!(f, "if {cond:?} then {then:?} else {else_:?}"),
             Expr::Local(name, expr1, expr2) => write!(f, "local {name} = {expr1:?};\n{expr2:?}"),
+
+            Expr::FieldAccess(expr, name) => write!(f, "{expr:?}.{name}"),
         }
     }
 }
