@@ -95,7 +95,12 @@ Dict: Vec<(CompactString, Expr)> =
     "{" <CommaSeparated<KeyValue>> "}";
 
 KeyValue: (CompactString, Expr) =
-    <k:String> ":" <v:Expr> => (k.into(), v);
+    <k:Key> ":" <v:Expr> => (k.into(), v);
+
+Key: CompactString = {
+    String => <>.into(),
+    Identifier,
+};
  
 extern {
     type Location = usize;
