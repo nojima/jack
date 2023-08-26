@@ -1,6 +1,8 @@
 use std::fmt::{Debug, Error, Formatter};
 use compact_str::CompactString;
 
+use crate::symbol::Symbol;
+
 pub enum Expr {
     Null,
     Bool(bool),
@@ -9,10 +11,13 @@ pub enum Expr {
     Array(Vec<Expr>),
     Dict(Vec<(CompactString, Expr)>),
 
+    Variable(Symbol),
+
     UnaryOp(UnaryOp, Box<Expr>),
     BinaryOp(BinaryOp, Box<Expr>, Box<Expr>),
 
     If(Box<Expr>, Box<Expr>, Box<Expr>),
+    Local(Symbol, Box<Expr>, Box<Expr>),
 }
 
 impl Debug for Expr {
@@ -22,6 +27,8 @@ impl Debug for Expr {
             Expr::Bool(b) => write!(f, "{:?}", b),
             Expr::Number(n) => write!(f, "{:?}", n),
             Expr::String(s) => write!(f, "{s:?}"),
+
+            Expr::Variable(name) => write!(f, "{name}"),
 
             Expr::Array(v) => {
                 write!(f, "[")?;
@@ -56,6 +63,7 @@ impl Debug for Expr {
             Expr::BinaryOp(op, lhs, rhs) => write!(f, "{op:?}({lhs:?}, {rhs:?})"),
 
             Expr::If(cond, then, else_) => write!(f, "if {cond:?} then {then:?} else {else_:?}"),
+            Expr::Local(name, expr1, expr2) => write!(f, "local {name} = {expr1:?};\n{expr2:?}"),
         }
     }
 }

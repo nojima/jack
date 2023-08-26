@@ -22,11 +22,16 @@ CommaSeparated<T>: Vec<T> = {
 pub Expr: Expr =  {
     CondExpr,
     IfExpr,
+    LocalExpr,
 };
 
 IfExpr: Expr =
     "if" <cond:Expr> "then" <then:Expr> "else" <else_:Expr>
         => Expr::If(Box::new(cond), Box::new(then), Box::new(else_));
+
+LocalExpr: Expr =
+    "local" <name:Identifier> "=" <expr1:Expr> ";" <expr2:Expr>
+        => Expr::Local(name, Box::new(expr1), Box::new(expr2));
 
 CondExpr: Expr = {
     AddExpr,
@@ -69,8 +74,12 @@ UnaryExpr: Expr = {
 
 Term: Expr = {
     Literal,
+    Variable,
     "(" <Expr> ")",
 };
+
+Variable: Expr =
+    Identifier => Expr::Variable(<>);
 
 Literal: Expr = {
     "true"  => Expr::Bool(true),
@@ -114,12 +123,14 @@ extern {
         "if" => Token::If,
         "then" => Token::Then,
         "else" => Token::Else,
+        "local" => Token::Local,
 
         "number literal" => Token::Number(<f64>),
         "string literal" => Token::String(<String>),
         "identifier"     => Token::Identifier(<CompactString>),
 
         ":" => Token::Colon,
+        ";" => Token::Semicolon,
         "," => Token::Comma,
         "(" => Token::LParen,
         ")" => Token::RParen,

@@ -11,6 +11,9 @@ pub enum EvalError {
 
     #[error("condition of if-expression must be a bool")]
     ConditionMustBeBool,
+
+    #[error("undefined variable: {0}")]
+    UndefinedVariable(Symbol),
 }
 
 #[derive(Clone)]
@@ -24,6 +27,16 @@ impl Env {
             variables: im::HashMap::new(),
         }
     }
+
+    pub fn with_variable(&self, name: Symbol, value: Value) -> Env {
+        Self {
+            variables: self.variables.update(name, value),
+        }
+    }
+
+    pub fn lookup(&self, name: &Symbol) -> Option<Value> {
+        self.variables.get(name).cloned()
+    }
 }
 
 type Result<T> = std::result::Result<T, EvalError>;
@@ -36,9 +49,11 @@ pub fn eval_expr(env: &Env, expr: &Expr) -> Result<Value> {
         Expr::String(s) => Value::String(s.clone()),
         Expr::Array(array) => eval_array(env, array)?,
         Expr::Dict(key_values) => eval_dict(env, key_values)?,
+        Expr::Variable(name) => eval_variable(env, name)?,
         Expr::UnaryOp(op, expr) => eval_unary_op(env, *op, expr)?,
         Expr::BinaryOp(op, lhs, rhs) => eval_binary_op(env, *op, lhs, rhs)?,
         Expr::If(cond, then, else_) => eval_if(env, cond, then, else_)?,
+        Expr::Local(name, expr1, expr2) => eval_local(env, name, expr1, expr2)?,
     })
 }
 
@@ -58,6 +73,13 @@ fn eval_dict(env: &Env, key_values: &[(CompactString, Expr)]) -> Result<Value> {
         dict.insert(key.clone(), value);
     }
     Ok(Value::Dict(dict))
+}
+
+fn eval_variable(env: &Env, name: &Symbol) -> Result<Value> {
+    match env.lookup(name) {
+        Some(value) => Ok(value),
+        None => Err(EvalError::UndefinedVariable(name.clone())),
+    }
 }
 
 fn eval_unary_op(env: &Env, op: UnaryOp, expr: &Expr) -> Result<Value> {
@@ -151,4 +173,10 @@ fn eval_if(env: &Env, cond: &Expr, then: &Expr, else_: &Expr) -> Result<Value> {
     } else {
         eval_expr(env, else_)
     }
+}
+
+fn eval_local(env: &Env, name: &Symbol, expr1: &Expr, expr2: &Expr) -> Result<Value> {
+    let value = eval_expr(env, expr1)?;
+    let new_env = env.with_variable(name.clone(), value);
+    eval_expr(&new_env, expr2)
 }

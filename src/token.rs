@@ -13,8 +13,10 @@ pub enum Token {
     If,
     Then,
     Else,
+    Local,
 
     Colon,
+    Semicolon,
     Comma,
     LParen,
     RParen,

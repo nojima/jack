@@ -46,6 +46,7 @@ fn lex(input: &str) -> LexResult {
     };
     match first {
         ':' => return ok(Token::Colon, 1),
+        ';' => return ok(Token::Semicolon, 1),
         ',' => return ok(Token::Comma, 1),
         '(' => return ok(Token::LParen, 1),
         ')' => return ok(Token::RParen, 1),
@@ -85,6 +86,7 @@ fn lex(input: &str) -> LexResult {
             "if" => Token::If,
             "then" => Token::Then,
             "else" => Token::Else,
+            "local" => Token::Local,
             _ => Token::Identifier(s.into()),
         };
         return ok(token, m.end());
