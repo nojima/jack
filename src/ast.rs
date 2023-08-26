@@ -1,4 +1,5 @@
 use std::fmt::{Debug, Error, Formatter};
+use compact_str::CompactString;
 
 pub enum Expr {
     Null,
@@ -6,7 +7,7 @@ pub enum Expr {
     Number(f64),
     String(String),
     Array(Vec<Expr>),
-    Dict(Vec<(String, Expr)>),
+    Dict(Vec<(CompactString, Expr)>),
 
     UnaryOp(UnaryOp, Box<Expr>),
     BinaryOp(BinaryOp, Box<Expr>, Box<Expr>),

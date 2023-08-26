@@ -1,6 +1,7 @@
 use crate::ast::{Expr, UnaryOp, BinaryOp};
 use crate::lexer;
 use crate::token::Token;
+use compact_str::CompactString;
 
 grammar;
 
@@ -85,16 +86,16 @@ Number: f64 = "number literal";
 
 String: String = "string literal";
 
-Identifier: String = "identifier";
+Identifier: CompactString = "identifier";
 
 Array: Vec<Expr> =
     "[" <CommaSeparated<Expr>> "]";
 
-Dict: Vec<(String, Expr)> =
+Dict: Vec<(CompactString, Expr)> =
     "{" <CommaSeparated<KeyValue>> "}";
 
-KeyValue: (String, Expr) =
-    <k:String> ":" <v:Expr> => (k, v);
+KeyValue: (CompactString, Expr) =
+    <k:String> ":" <v:Expr> => (k.into(), v);
  
 extern {
     type Location = usize;
@@ -111,7 +112,7 @@ extern {
 
         "number literal" => Token::Number(<f64>),
         "string literal" => Token::String(<String>),
-        "identifier"     => Token::Identifier(<String>),
+        "identifier"     => Token::Identifier(<CompactString>),
 
         ":" => Token::Colon,
         "," => Token::Comma,

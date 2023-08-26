@@ -1,5 +1,5 @@
-use std::collections::HashMap;
-
+use compact_str::CompactString;
+use indexmap::IndexMap;
 use crate::ast::{BinaryOp, Expr, UnaryOp};
 use crate::symbol::Symbol;
 use crate::value::Value;
@@ -51,8 +51,8 @@ fn eval_array(env: &Env, array: &[Expr]) -> Result<Value> {
     Ok(Value::Array(values))
 }
 
-fn eval_dict(env: &Env, key_values: &[(String, Expr)]) -> Result<Value> {
-    let mut dict = HashMap::new();
+fn eval_dict(env: &Env, key_values: &[(CompactString, Expr)]) -> Result<Value> {
+    let mut dict = IndexMap::new();
     for (key, expr) in key_values {
         let value = eval_expr(env, expr)?;
         dict.insert(key.clone(), value);

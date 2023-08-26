@@ -1,4 +1,5 @@
-use std::collections::HashMap;
+use compact_str::CompactString;
+use indexmap::IndexMap;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
@@ -7,5 +8,5 @@ pub enum Value {
     Number(f64),
     String(String),
     Array(Vec<Value>),
-    Dict(HashMap<String, Value>),
+    Dict(IndexMap<CompactString, Value>),
 }
