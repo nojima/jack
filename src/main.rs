@@ -1,6 +1,9 @@
 mod ast;
+mod eval;
 mod lexer;
+mod symbol;
 mod token;
+mod value;
 
 use lalrpop_util::lalrpop_mod;
 use std::io::{self, Write};
@@ -10,6 +13,7 @@ lalrpop_mod!(pub syntax);
 fn main() -> io::Result<()> {
     let mut buffer = String::new();
     let stdin = io::stdin();
+    let env = eval::Env::new();
 
     loop {
         print!("expr> ");
@@ -24,7 +28,24 @@ fn main() -> io::Result<()> {
 
         let lexer = lexer::Lexer::new(&buffer);
         let parser = syntax::ExprParser::new();
-        println!("{:?}", parser.parse(lexer));
+        let node = match parser.parse(lexer) {
+            Ok(node) => node,
+            Err(e) => {
+                println!("ERROR: {e}");
+                continue;
+            }
+        };
+        println!("node = {node:?}");
+        println!();
+
+        let value = match eval::eval_expr(&env, &node) {
+            Ok(v) => v,
+            Err(e) => {
+                println!("ERROR: {e}");
+                continue;
+            }
+        };
+        println!("value = {value:?}");
         println!();
     }
 }
@@ -58,7 +79,10 @@ fn parse_test() {
 
     verify("{}", "{}");
     verify("{\"foo\": true}", "{\"foo\": true}");
-    verify("{\"aaa\": 1.0, \"bbb\": 2.0}", "{\"aaa\": 1.0, \"bbb\": 2.0}");
+    verify(
+        "{\"aaa\": 1.0, \"bbb\": 2.0}",
+        "{\"aaa\": 1.0, \"bbb\": 2.0}",
+    );
 
     verify("\"hello\"", "\"hello\"")
 }

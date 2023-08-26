@@ -9,6 +9,8 @@ edition = "2021"
 lalrpop = "0.20.0"
 
 [dependencies]
+compact_str = "0.7.1"
+im = "15.1.0"
 lalrpop-util = { version = "0.20.0", features = ["lexer"] }
 regex = "1"
 thiserror = "1"

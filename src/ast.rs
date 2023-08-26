@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    fmt::{Debug, Error, Formatter},
-};
+use std::fmt::{Debug, Error, Formatter};
 
 pub enum Expr {
     Null,
@@ -9,7 +6,7 @@ pub enum Expr {
     Number(f64),
     String(String),
     Array(Vec<Expr>),
-    Dict(HashMap<String, Expr>),
+    Dict(Vec<(String, Expr)>),
 
     UnaryOp(UnaryOp, Box<Expr>),
     BinaryOp(BinaryOp, Box<Expr>, Box<Expr>),
@@ -37,15 +34,11 @@ impl Debug for Expr {
                 write!(f, "]")
             }
 
-            Expr::Dict(dict) => {
+            Expr::Dict(key_values) => {
                 write!(f, "{{")?;
 
-                // sort elements by key to fix iteration order.
-                let mut seq: Vec<(&String, &Expr)> = dict.iter().collect();
-                seq.sort_unstable_by(|(k1, _), (k2, _)| k1.cmp(k2));
-
                 let mut first = true;
-                for (k, v) in seq {
+                for (k, v) in key_values {
                     if first {
                         first = false;
                     } else {

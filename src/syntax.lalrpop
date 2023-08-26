@@ -74,9 +74,8 @@ Identifier: String = "identifier";
 Array: Vec<Expr> =
     "[" <CommaSeparated<Expr>> "]";
 
-Dict: HashMap<String, Expr> =
-    "{" <CommaSeparated<KeyValue>> "}" =>
-        <>.into_iter().collect();
+Dict: Vec<(String, Expr)> =
+    "{" <CommaSeparated<KeyValue>> "}";
 
 KeyValue: (String, Expr) =
     <k:String> ":" <v:Expr> => (k, v);

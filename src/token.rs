@@ -1,3 +1,5 @@
+use std::fmt::{self, Display, Formatter};
+
 #[derive(Clone, PartialEq, Debug)]
 pub enum Token {
     True,
@@ -20,4 +22,10 @@ pub enum Token {
     Asterisk,
     Slash,
     Percent,
+}
+
+impl Display for Token {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
