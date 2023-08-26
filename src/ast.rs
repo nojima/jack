@@ -23,6 +23,7 @@ pub enum Expr {
     Local(Symbol, Box<Expr>, Box<Expr>),
 
     FieldAccess(Box<Expr>, Symbol),
+    IndexAccess(Box<Expr>, Box<Expr>),
 }
 
 impl Debug for Expr {
@@ -71,6 +72,7 @@ impl Debug for Expr {
             Expr::Local(name, expr1, expr2) => write!(f, "local {name} = {expr1:?};\n{expr2:?}"),
 
             Expr::FieldAccess(expr, name) => write!(f, "{expr:?}.{name}"),
+            Expr::IndexAccess(expr, index) => write!(f, "{expr:?}[{index:?}]"),
         }
     }
 }

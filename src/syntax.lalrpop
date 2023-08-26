@@ -76,6 +76,7 @@ UnaryExpr: Expr = {
 PostfixExpr: Expr = {
     Term,
     <expr:PostfixExpr> "." <name:Identifier> => Expr::FieldAccess(Box::new(expr), name),
+    <expr:PostfixExpr> "[" <index:Expr> "]"  => Expr::IndexAccess(Box::new(expr), Box::new(index)),
 };
 
 Term: Expr = {

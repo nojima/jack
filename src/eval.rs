@@ -1,7 +1,7 @@
 use crate::ast::{BinaryOp, Expr, UnaryOp};
 use crate::symbol::Symbol;
 use crate::value::Value;
-use compact_str::CompactString;
+use compact_str::{CompactString, ToCompactString};
 use std::collections::HashMap;
 use std::sync::Arc;
 
@@ -18,6 +18,9 @@ pub enum EvalError {
 
     #[error("field does not exit: {0}")]
     FieldDoesNotExist(Symbol),
+
+    #[error("index out of bounds: {0}")]
+    IndexOutOfBounds(usize),
 }
 
 #[derive(Clone)]
@@ -59,6 +62,7 @@ pub fn eval_expr(env: &Env, expr: &Expr) -> Result<Value> {
         Expr::If(cond, then, else_) => eval_if(env, cond, then, else_),
         Expr::Local(name, expr1, expr2) => eval_local(env, name, expr1, expr2),
         Expr::FieldAccess(expr, name) => eval_field_access(env, expr, name),
+        Expr::IndexAccess(expr, index) => eval_index_access(env, expr, index),
     }
 }
 
@@ -195,6 +199,44 @@ fn eval_field_access(env: &Env, expr: &Expr, name: &Symbol) -> Result<Value> {
         Value::Dict(dict) => match dict.get(name) {
             Some(value2) => Ok(value2.clone()),
             None => Err(EvalError::FieldDoesNotExist(name.clone())),
+        },
+        _ => Err(EvalError::BadOperandType),
+    }
+}
+
+fn eval_index_access(env: &Env, expr: &Expr, index: &Expr) -> Result<Value> {
+    let collection_value = eval_expr(env, expr)?;
+    let index_value = eval_expr(env, index)?;
+    match collection_value {
+        Value::Array(array) => match index_value {
+            Value::Number(i) => {
+                let index = i as usize;
+                match array.get(index) {
+                    Some(ret) => Ok(ret.clone()),
+                    None => Err(EvalError::IndexOutOfBounds(index)),
+                }
+            }
+            _ => Err(EvalError::BadOperandType),
+        },
+        Value::String(str) => match index_value {
+            Value::Number(i) => {
+                let index = i as usize;
+                match str.chars().nth(index) {
+                    Some(ret) => Ok(Value::String(Arc::new(String::from(ret)))),
+                    None => Err(EvalError::IndexOutOfBounds(index)),
+                }
+            }
+            _ => Err(EvalError::BadOperandType),
+        },
+        Value::Dict(dict) => match index_value {
+            Value::String(s) => {
+                let s = s.to_compact_string();
+                match dict.get(&s) {
+                    Some(ret) => Ok(ret.clone()),
+                    None => Err(EvalError::FieldDoesNotExist(s)),
+                }
+            }
+            _ => Err(EvalError::BadOperandType),
         },
         _ => Err(EvalError::BadOperandType),
     }
