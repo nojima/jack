@@ -5,7 +5,10 @@ mod symbol;
 mod token;
 mod value;
 
-use std::{path::{PathBuf, Path}, fs};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
 
 use clap::Parser;
 use lalrpop_util::lalrpop_mod;

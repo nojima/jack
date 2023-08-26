@@ -1,7 +1,9 @@
 use crate::ast::Expr;
-use crate::eval::Env;
+use crate::eval::{self, Env};
 use crate::symbol::Symbol;
 use compact_str::CompactString;
+use std::cell::OnceCell;
+use std::fmt::Debug;
 use std::sync::Arc;
 
 #[derive(Debug, Clone)]
@@ -55,5 +57,51 @@ impl Value {
             (_, Value::Closure(_, _, _)) => None,
             _ => Some(false),
         }
+    }
+}
+
+pub struct Thunk {
+    env: OnceCell<Env>,
+    expr: Box<Expr>,
+    value: OnceCell<Value>,
+}
+
+impl Thunk {
+    pub fn new(env: Env, expr: Box<Expr>) -> Self {
+        Self {
+            env: OnceCell::from(env),
+            expr,
+            value: OnceCell::new(),
+        }
+    }
+
+    pub fn partial_new(expr: Box<Expr>) -> Self {
+        Self {
+            env: OnceCell::new(),
+            expr,
+            value: OnceCell::new(),
+        }
+    }
+
+    pub fn set_env(&self, env: Env) {
+        let _ = self.env.set(env);
+    }
+
+    pub fn unwrap(&self) -> eval::Result<Value> {
+        if let Some(v) = self.value.get() {
+            return Ok(v.clone());
+        }
+        let Some(env) = self.env.get() else {
+            panic!("env is not set")
+        };
+        let v = eval::eval_expr(env, &self.expr)?;
+        let _ = self.value.set(v.clone());
+        Ok(v)
+    }
+}
+
+impl Debug for Thunk {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{:?}", self.unwrap())
     }
 }

@@ -1,6 +1,6 @@
 use crate::ast::{BinaryOp, Expr, UnaryOp};
 use crate::symbol::Symbol;
-use crate::value::Value;
+use crate::value::{Thunk, Value};
 use compact_str::{CompactString, ToCompactString};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -34,7 +34,7 @@ pub enum EvalError {
 
 #[derive(Clone, Debug)]
 pub struct Env {
-    variables: im::HashMap<Symbol, Value>,
+    variables: im::HashMap<Symbol, Arc<Thunk>>,
 }
 
 impl Env {
@@ -44,18 +44,18 @@ impl Env {
         }
     }
 
-    pub fn with_variable(&self, name: Symbol, value: Value) -> Env {
+    pub fn with_variable(&self, name: Symbol, thunk: Arc<Thunk>) -> Env {
         Self {
-            variables: self.variables.update(name, value),
+            variables: self.variables.update(name, thunk),
         }
     }
 
-    pub fn lookup(&self, name: &Symbol) -> Option<Value> {
+    pub fn lookup(&self, name: &Symbol) -> Option<Arc<Thunk>> {
         self.variables.get(name).cloned()
     }
 }
 
-type Result<T> = std::result::Result<T, EvalError>;
+pub type Result<T> = std::result::Result<T, EvalError>;
 
 pub fn eval_expr(env: &Env, expr: &Expr) -> Result<Value> {
     match expr {
@@ -105,7 +105,7 @@ fn eval_function_literal(env: &Env, args: &[Symbol], expr: &Expr) -> Result<Valu
 
 fn eval_variable(env: &Env, name: &Symbol) -> Result<Value> {
     match env.lookup(name) {
-        Some(value) => Ok(value),
+        Some(value) => Ok(value.unwrap()?),
         None => Err(EvalError::UndefinedVariable(name.clone())),
     }
 }
@@ -213,25 +213,23 @@ fn eval_if(env: &Env, cond: &Expr, then: &Expr, else_: &Expr) -> Result<Value> {
 }
 
 fn eval_local(env: &Env, name: &Symbol, expr1: &Expr, expr2: &Expr) -> Result<Value> {
-    let value = eval_expr(env, expr1)?;
-    let new_env = env.with_variable(name.clone(), value);
+    let thunk = Arc::new(Thunk::partial_new(Box::new(expr1.clone())));
+    let new_env = env.with_variable(name.clone(), thunk.clone());
+    thunk.set_env(new_env.clone());
     eval_expr(&new_env, expr2)
 }
 
 fn eval_function_call(env: &Env, func: &Expr, args: &[Expr]) -> Result<Value> {
     let func_value = eval_expr(env, func)?;
-    let arg_values = args
-        .iter()
-        .map(|arg| eval_expr(env, arg))
-        .collect::<Result<Vec<_>>>()?;
     match func_value {
         Value::Closure(closure_env, params, expr) => {
-            if arg_values.len() != params.len() {
+            if args.len() != params.len() {
                 return Err(EvalError::WrongNumberOfArguments);
             }
             let mut new_env = closure_env;
-            for (param, arg) in params.iter().zip(arg_values) {
-                new_env = new_env.with_variable(param.clone(), arg)
+            for (param, arg) in params.iter().zip(args) {
+                let thunk = Thunk::new(env.clone(), Box::new(arg.clone()));
+                new_env = new_env.with_variable(param.clone(), Arc::new(thunk));
             }
             eval_expr(&new_env, &expr)
         }
