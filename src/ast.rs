@@ -1,5 +1,5 @@
-use std::fmt::{Debug, Error, Formatter};
 use compact_str::CompactString;
+use std::fmt::{Debug, Error, Formatter};
 
 use crate::symbol::Symbol;
 

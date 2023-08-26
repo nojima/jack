@@ -1,8 +1,8 @@
-use compact_str::CompactString;
-use indexmap::IndexMap;
 use crate::ast::{BinaryOp, Expr, UnaryOp};
 use crate::symbol::Symbol;
 use crate::value::Value;
+use compact_str::CompactString;
+use indexmap::IndexMap;
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum EvalError {
