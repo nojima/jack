@@ -3,7 +3,7 @@ use crate::symbol::Symbol;
 use crate::value::{Thunk, Value};
 use compact_str::{CompactString, ToCompactString};
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::rc::Rc;
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum EvalError {
@@ -34,23 +34,23 @@ pub enum EvalError {
 
 #[derive(Clone, Debug)]
 pub struct Env {
-    variables: im::HashMap<Symbol, Arc<Thunk>>,
+    variables: im_rc::HashMap<Symbol, Rc<Thunk>>,
 }
 
 impl Env {
     pub fn new() -> Self {
         Self {
-            variables: im::HashMap::new(),
+            variables: im_rc::HashMap::new(),
         }
     }
 
-    pub fn with_variable(&self, name: Symbol, thunk: Arc<Thunk>) -> Env {
+    pub fn with_variable(&self, name: Symbol, thunk: Rc<Thunk>) -> Env {
         Self {
             variables: self.variables.update(name, thunk),
         }
     }
 
-    pub fn lookup(&self, name: &Symbol) -> Option<Arc<Thunk>> {
+    pub fn lookup(&self, name: &Symbol) -> Option<Rc<Thunk>> {
         self.variables.get(name).cloned()
     }
 }
@@ -62,7 +62,7 @@ pub fn eval_expr(env: &Env, expr: &Expr) -> Result<Value> {
         Expr::Null => Ok(Value::Null),
         Expr::Bool(b) => Ok(Value::Bool(*b)),
         Expr::Number(n) => Ok(Value::Number(*n)),
-        Expr::String(s) => Ok(Value::String(Arc::clone(s))),
+        Expr::String(s) => Ok(Value::String(Rc::clone(s))),
         Expr::Array(array) => eval_array(env, array),
         Expr::Dict(key_values) => eval_dict(env, key_values),
         Expr::Function(args, expr) => eval_function_literal(env, args, expr),
@@ -99,7 +99,7 @@ fn eval_function_literal(env: &Env, args: &[Symbol], expr: &Expr) -> Result<Valu
     Ok(Value::Closure(
         env.clone(),
         args.to_vec(),
-        Arc::new(expr.clone()),
+        Rc::new(expr.clone()),
     ))
 }
 
@@ -141,7 +141,7 @@ fn eval_add(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
         (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l + r)),
         (Value::String(l), Value::String(r)) => {
             let ret = (*l).clone() + &r;
-            Ok(Value::String(Arc::new(ret)))
+            Ok(Value::String(Rc::new(ret)))
         }
         _ => Err(EvalError::BadOperandType),
     }
@@ -213,7 +213,7 @@ fn eval_if(env: &Env, cond: &Expr, then: &Expr, else_: &Expr) -> Result<Value> {
 }
 
 fn eval_local(env: &Env, name: &Symbol, expr1: &Expr, expr2: &Expr) -> Result<Value> {
-    let thunk = Arc::new(Thunk::partial_new(Box::new(expr1.clone())));
+    let thunk = Rc::new(Thunk::partial_new(Box::new(expr1.clone())));
     let new_env = env.with_variable(name.clone(), thunk.clone());
     thunk.set_env(new_env.clone());
     eval_expr(&new_env, expr2)
@@ -229,7 +229,7 @@ fn eval_function_call(env: &Env, func: &Expr, args: &[Expr]) -> Result<Value> {
             let mut new_env = closure_env;
             for (param, arg) in params.iter().zip(args) {
                 let thunk = Thunk::new(env.clone(), Box::new(arg.clone()));
-                new_env = new_env.with_variable(param.clone(), Arc::new(thunk));
+                new_env = new_env.with_variable(param.clone(), Rc::new(thunk));
             }
             eval_expr(&new_env, &expr)
         }
@@ -266,7 +266,7 @@ fn eval_index_access(env: &Env, expr: &Expr, index: &Expr) -> Result<Value> {
             Value::Number(i) => {
                 let index = i as usize;
                 match str.chars().nth(index) {
-                    Some(ret) => Ok(Value::String(Arc::new(String::from(ret)))),
+                    Some(ret) => Ok(Value::String(Rc::new(String::from(ret)))),
                     None => Err(EvalError::IndexOutOfBounds(index)),
                 }
             }

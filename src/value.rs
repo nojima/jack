@@ -4,17 +4,17 @@ use crate::symbol::Symbol;
 use compact_str::CompactString;
 use std::cell::OnceCell;
 use std::fmt::Debug;
-use std::sync::Arc;
+use std::rc::Rc;
 
 #[derive(Debug, Clone)]
 pub enum Value {
     Null,
     Bool(bool),
     Number(f64),
-    String(Arc<String>),
-    Array(im::Vector<Value>),
-    Dict(im::HashMap<CompactString, Value>),
-    Closure(Env, Vec<Symbol>, Arc<Expr>),
+    String(Rc<String>),
+    Array(im_rc::Vector<Value>),
+    Dict(im_rc::HashMap<CompactString, Value>),
+    Closure(Env, Vec<Symbol>, Rc<Expr>),
 }
 
 impl Value {
