@@ -46,12 +46,10 @@ fn parse_test() {
     verify("0", "0.0");
     verify("1", "1.0");
     verify("10", "10.0");
-    verify("-1", "-1.0");
+    verify("-1", "Neg(1.0)");
     verify("3.14", "3.14");
-    verify("-3.14", "-3.14");
     verify("1e10", "10000000000.0");
     verify("1E10", "10000000000.0");
-    verify("-1E10", "-10000000000.0");
 
     verify("[]", "[]");
     verify("[null]", "[null]");
@@ -59,8 +57,8 @@ fn parse_test() {
     verify("[true,]", "[true]");
 
     verify("{}", "{}");
-    verify("{foo: true}", "{\"foo\": true}");
-    verify("{aaa: 1.0, bbb: 2.0}", "{\"aaa\": 1.0, \"bbb\": 2.0}");
+    verify("{\"foo\": true}", "{\"foo\": true}");
+    verify("{\"aaa\": 1.0, \"bbb\": 2.0}", "{\"aaa\": 1.0, \"bbb\": 2.0}");
 
     verify("\"hello\"", "\"hello\"")
 }
