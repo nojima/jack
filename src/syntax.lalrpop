@@ -19,13 +19,24 @@ CommaSeparated<T>: Vec<T> = {
 //-----------------------------------------------------------------------------
 
 pub Expr: Expr =  {
-    AddExpr,
+    CondExpr,
     IfExpr,
 };
 
 IfExpr: Expr =
     "if" <cond:Expr> "then" <then:Expr> "else" <else_:Expr>
         => Expr::If(Box::new(cond), Box::new(then), Box::new(else_));
+
+CondExpr: Expr = {
+    AddExpr,
+    <lhs:AddExpr> <op:CondOp> <rhs:AddExpr>
+        => Expr::BinaryOp(op, Box::new(lhs), Box::new(rhs)),
+}
+
+CondOp: BinaryOp = {
+    "==" => BinaryOp::Eq,
+    "!=" => BinaryOp::NotEq,
+};
 
 AddExpr: Expr = {
     MulExpr,
@@ -115,5 +126,9 @@ extern {
         "*" => Token::Asterisk,
         "/" => Token::Slash,
         "%" => Token::Percent,
+        "=" => Token::Eq,
+        "==" => Token::EqEq,
+        "!" => Token::Exclamation,
+        "!=" => Token::NotEq,
     }
 }

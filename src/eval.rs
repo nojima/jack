@@ -79,6 +79,8 @@ fn eval_binary_op(env: &Env, op: BinaryOp, lhs: &Expr, rhs: &Expr) -> Result<Val
         BinaryOp::Mul => eval_mul(env, lhs, rhs),
         BinaryOp::Div => eval_div(env, lhs, rhs),
         BinaryOp::Mod => eval_mod(env, lhs, rhs),
+        BinaryOp::Eq => eval_eq(env, lhs, rhs),
+        BinaryOp::NotEq => eval_not_eq(env, lhs, rhs),
     }
 }
 
@@ -126,6 +128,18 @@ fn eval_mod(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
         (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l % r)),
         _ => Err(EvalError::BadOperandType),
     }
+}
+
+fn eval_eq(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
+    let l = eval_expr(env, lhs)?;
+    let r = eval_expr(env, rhs)?;
+    Ok(Value::Bool(l == r))
+}
+
+fn eval_not_eq(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
+    let l = eval_expr(env, lhs)?;
+    let r = eval_expr(env, rhs)?;
+    Ok(Value::Bool(l != r))
 }
 
 fn eval_if(env: &Env, cond: &Expr, then: &Expr, else_: &Expr) -> Result<Value> {

@@ -26,6 +26,10 @@ pub enum Token {
     Asterisk,
     Slash,
     Percent,
+    Eq,
+    EqEq,
+    Exclamation,
+    NotEq,
 }
 
 impl Display for Token {

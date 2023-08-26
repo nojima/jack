@@ -58,6 +58,20 @@ fn lex(input: &str) -> LexResult {
         '*' => return ok(Token::Asterisk, 1),
         '/' => return ok(Token::Slash, 1),
         '%' => return ok(Token::Percent, 1),
+        '=' => {
+            return if second(input) == Some('=') {
+                ok(Token::EqEq, 2)
+            } else {
+                ok(Token::Eq, 1)
+            };
+        }
+        '!' => {
+            return if second(input) == Some('=') {
+                ok(Token::NotEq, 2)
+            } else {
+                ok(Token::Exclamation, 1)
+            };
+        }
         _ => {}
     }
 
@@ -144,6 +158,13 @@ fn lex_strip(input: &str) -> LexResult {
             }
         }
     }
+}
+
+// Returns the second character of `input`.
+fn second(input: &str) -> Option<char> {
+    let mut chars = input.chars();
+    chars.next();
+    chars.next()
 }
 
 pub struct Lexer<'input> {
