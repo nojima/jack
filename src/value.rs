@@ -1,12 +1,12 @@
 use compact_str::CompactString;
-use indexmap::IndexMap;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum Value {
     Null,
     Bool(bool),
     Number(f64),
-    String(String),
-    Array(Vec<Value>),
-    Dict(IndexMap<CompactString, Value>),
+    String(Arc<String>),
+    Array(im::Vector<Value>),
+    Dict(im::HashMap<CompactString, Value>),
 }

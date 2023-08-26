@@ -313,7 +313,6 @@ dependencies = [
  "anyhow",
  "compact_str",
  "im",
- "indexmap",
  "lalrpop",
  "lalrpop-util",
  "regex",

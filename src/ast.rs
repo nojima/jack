@@ -1,5 +1,8 @@
 use compact_str::CompactString;
-use std::fmt::{Debug, Error, Formatter};
+use std::{
+    fmt::{Debug, Error, Formatter},
+    sync::Arc,
+};
 
 use crate::symbol::Symbol;
 
@@ -7,7 +10,7 @@ pub enum Expr {
     Null,
     Bool(bool),
     Number(f64),
-    String(String),
+    String(Arc<String>),
     Array(Vec<Expr>),
     Dict(Vec<(CompactString, Expr)>),
 

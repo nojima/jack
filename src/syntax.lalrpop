@@ -1,7 +1,8 @@
+use compact_str::CompactString;
 use crate::ast::{Expr, UnaryOp, BinaryOp};
 use crate::lexer;
 use crate::token::Token;
-use compact_str::CompactString;
+use std::sync::Arc;
 
 grammar;
 
@@ -91,7 +92,7 @@ Literal: Expr = {
     "false" => Expr::Bool(false),
     "null"  => Expr::Null,
     Number  => Expr::Number(<>),
-    String  => Expr::String(<>),
+    String  => Expr::String(Arc::new(<>)),
     Array   => Expr::Array(<>),
     Dict    => Expr::Dict(<>),
 };

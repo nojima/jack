@@ -2,7 +2,8 @@ use crate::ast::{BinaryOp, Expr, UnaryOp};
 use crate::symbol::Symbol;
 use crate::value::Value;
 use compact_str::CompactString;
-use indexmap::IndexMap;
+use std::collections::HashMap;
+use std::sync::Arc;
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum EvalError {
@@ -49,7 +50,7 @@ pub fn eval_expr(env: &Env, expr: &Expr) -> Result<Value> {
         Expr::Null => Ok(Value::Null),
         Expr::Bool(b) => Ok(Value::Bool(*b)),
         Expr::Number(n) => Ok(Value::Number(*n)),
-        Expr::String(s) => Ok(Value::String(s.clone())),
+        Expr::String(s) => Ok(Value::String(Arc::clone(s))),
         Expr::Array(array) => eval_array(env, array),
         Expr::Dict(key_values) => eval_dict(env, key_values),
         Expr::Variable(name) => eval_variable(env, name),
@@ -67,16 +68,16 @@ fn eval_array(env: &Env, array: &[Expr]) -> Result<Value> {
         let value = eval_expr(env, expr)?;
         values.push(value);
     }
-    Ok(Value::Array(values))
+    Ok(Value::Array(values.into()))
 }
 
 fn eval_dict(env: &Env, key_values: &[(CompactString, Expr)]) -> Result<Value> {
-    let mut dict = IndexMap::new();
+    let mut dict = HashMap::new();
     for (key, expr) in key_values {
         let value = eval_expr(env, expr)?;
         dict.insert(key.clone(), value);
     }
-    Ok(Value::Dict(dict))
+    Ok(Value::Dict(dict.into()))
 }
 
 fn eval_variable(env: &Env, name: &Symbol) -> Result<Value> {
@@ -115,7 +116,10 @@ fn eval_add(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
     let r = eval_expr(env, rhs)?;
     match (l, r) {
         (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l + r)),
-        (Value::String(l), Value::String(r)) => Ok(Value::String(l + &r)),
+        (Value::String(l), Value::String(r)) => {
+            let ret = (*l).clone() + &r;
+            Ok(Value::String(Arc::new(ret)))
+        }
         _ => Err(EvalError::BadOperandType),
     }
 }
