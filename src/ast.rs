@@ -6,6 +6,7 @@ use std::{
 
 use crate::symbol::Symbol;
 
+#[derive(Clone)]
 pub enum Expr {
     Null,
     Bool(bool),
@@ -13,6 +14,7 @@ pub enum Expr {
     String(Arc<String>),
     Array(Vec<Expr>),
     Dict(Vec<(CompactString, Expr)>),
+    Function(Vec<Symbol>, Box<Expr>),
 
     Variable(Symbol),
 
@@ -64,6 +66,8 @@ impl Debug for Expr {
                 }
                 write!(f, "}}")
             }
+
+            Expr::Function(args, expr) => write!(f, "function{args:?} {expr:?}"),
 
             Expr::UnaryOp(op, expr) => write!(f, "{op:?}({expr:?})"),
             Expr::BinaryOp(op, lhs, rhs) => write!(f, "{op:?}({lhs:?}, {rhs:?})"),

@@ -24,6 +24,7 @@ pub Expr: Expr =  {
     CondExpr,
     IfExpr,
     LocalExpr,
+    Function,
 };
 
 IfExpr: Expr =
@@ -117,6 +118,10 @@ Key: CompactString = {
     String => <>.into(),
     Identifier,
 };
+
+Function: Expr =
+    "function" "(" <params:CommaSeparated<Identifier>> ")" <expr:Expr>
+        => Expr::Function(params, Box::new(expr));
  
 extern {
     type Location = usize;
@@ -131,6 +136,7 @@ extern {
         "then" => Token::Then,
         "else" => Token::Else,
         "local" => Token::Local,
+        "function" => Token::Function,
 
         "number literal" => Token::Number(<f64>),
         "string literal" => Token::String(<String>),

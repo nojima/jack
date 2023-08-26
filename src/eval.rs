@@ -21,9 +21,12 @@ pub enum EvalError {
 
     #[error("index out of bounds: {0}")]
     IndexOutOfBounds(usize),
+
+    #[error("cannot compare")]
+    CannotCompare,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Env {
     variables: im::HashMap<Symbol, Value>,
 }
@@ -56,6 +59,7 @@ pub fn eval_expr(env: &Env, expr: &Expr) -> Result<Value> {
         Expr::String(s) => Ok(Value::String(Arc::clone(s))),
         Expr::Array(array) => eval_array(env, array),
         Expr::Dict(key_values) => eval_dict(env, key_values),
+        Expr::Function(args, expr) => eval_function_literal(env, args, expr),
         Expr::Variable(name) => eval_variable(env, name),
         Expr::UnaryOp(op, expr) => eval_unary_op(env, *op, expr),
         Expr::BinaryOp(op, lhs, rhs) => eval_binary_op(env, *op, lhs, rhs),
@@ -82,6 +86,14 @@ fn eval_dict(env: &Env, key_values: &[(CompactString, Expr)]) -> Result<Value> {
         dict.insert(key.clone(), value);
     }
     Ok(Value::Dict(dict.into()))
+}
+
+fn eval_function_literal(env: &Env, args: &[Symbol], expr: &Expr) -> Result<Value> {
+    Ok(Value::Closure(
+        env.clone(),
+        args.to_vec(),
+        Arc::new(expr.clone()),
+    ))
 }
 
 fn eval_variable(env: &Env, name: &Symbol) -> Result<Value> {
@@ -167,13 +179,19 @@ fn eval_mod(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
 fn eval_eq(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
     let l = eval_expr(env, lhs)?;
     let r = eval_expr(env, rhs)?;
-    Ok(Value::Bool(l == r))
+    let Some(ret) = Value::try_eq(&l, &r) else {
+        return Err(EvalError::CannotCompare);
+    };
+    Ok(Value::Bool(ret))
 }
 
 fn eval_not_eq(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
     let l = eval_expr(env, lhs)?;
     let r = eval_expr(env, rhs)?;
-    Ok(Value::Bool(l != r))
+    let Some(ret) = Value::try_eq(&l, &r) else {
+        return Err(EvalError::CannotCompare);
+    };
+    Ok(Value::Bool(!ret))
 }
 
 fn eval_if(env: &Env, cond: &Expr, then: &Expr, else_: &Expr) -> Result<Value> {

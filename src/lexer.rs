@@ -88,6 +88,7 @@ fn lex(input: &str) -> LexResult {
             "then" => Token::Then,
             "else" => Token::Else,
             "local" => Token::Local,
+            "function" => Token::Function,
             _ => Token::Identifier(s.into()),
         };
         return ok(token, m.end());

@@ -14,6 +14,7 @@ pub enum Token {
     Then,
     Else,
     Local,
+    Function,
 
     Dot,
     Colon,
