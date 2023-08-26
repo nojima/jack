@@ -6,27 +6,17 @@ mod token;
 mod value;
 
 use lalrpop_util::lalrpop_mod;
-use std::io::{self, Write};
 
 lalrpop_mod!(pub syntax);
 
-fn main() -> io::Result<()> {
-    let mut buffer = String::new();
-    let stdin = io::stdin();
+fn main() -> anyhow::Result<()> {
+    let mut rl = rustyline::DefaultEditor::new()?;
     let env = eval::Env::new();
 
     loop {
-        print!("expr> ");
-        io::stdout().flush()?;
+        let line = rl.readline("expr> ")?;
 
-        buffer.clear();
-        let n = stdin.read_line(&mut buffer)?;
-        if n == 0 {
-            // EOF
-            return Ok(());
-        }
-
-        let lexer = lexer::Lexer::new(&buffer);
+        let lexer = lexer::Lexer::new(&line);
         let parser = syntax::ExprParser::new();
         let node = match parser.parse(lexer) {
             Ok(node) => node,

@@ -1,7 +1,6 @@
 use crate::ast::{Expr, UnaryOp, BinaryOp};
 use crate::lexer;
 use crate::token::Token;
-use std::collections::HashMap;
 
 grammar;
 
