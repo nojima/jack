@@ -9,6 +9,10 @@ pub enum Token {
     String(String),
     Identifier(String),
 
+    If,
+    Then,
+    Else,
+
     Colon,
     Comma,
     LParen,

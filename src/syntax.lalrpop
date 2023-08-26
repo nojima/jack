@@ -18,8 +18,14 @@ CommaSeparated<T>: Vec<T> = {
 
 //-----------------------------------------------------------------------------
 
-pub Expr: Expr = 
-    AddExpr;
+pub Expr: Expr =  {
+    AddExpr,
+    IfExpr,
+};
+
+IfExpr: Expr =
+    "if" <cond:Expr> "then" <then:Expr> "else" <else_:Expr>
+        => Expr::If(Box::new(cond), Box::new(then), Box::new(else_));
 
 AddExpr: Expr = {
     MulExpr,
@@ -87,6 +93,10 @@ extern {
         "true"  => Token::True,
         "false" => Token::False,
         "null"  => Token::Null,
+
+        "if" => Token::If,
+        "then" => Token::Then,
+        "else" => Token::Else,
 
         "number literal" => Token::Number(<f64>),
         "string literal" => Token::String(<String>),

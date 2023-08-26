@@ -10,6 +10,8 @@ pub enum Expr {
 
     UnaryOp(UnaryOp, Box<Expr>),
     BinaryOp(BinaryOp, Box<Expr>, Box<Expr>),
+
+    If(Box<Expr>, Box<Expr>, Box<Expr>),
 }
 
 impl Debug for Expr {
@@ -51,6 +53,8 @@ impl Debug for Expr {
 
             Expr::UnaryOp(op, expr) => write!(f, "{op:?}({expr:?})"),
             Expr::BinaryOp(op, lhs, rhs) => write!(f, "{op:?}({lhs:?}, {rhs:?})"),
+
+            Expr::If(cond, then, else_) => write!(f, "if {cond:?} then {then:?} else {else_:?}"),
         }
     }
 }

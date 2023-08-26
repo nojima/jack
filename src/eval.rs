@@ -8,6 +8,9 @@ use crate::value::Value;
 pub enum EvalError {
     #[error("bad operand type")]
     BadOperandType,
+
+    #[error("condition of if-expression must be a bool")]
+    ConditionMustBeBool,
 }
 
 #[derive(Clone)]
@@ -35,6 +38,7 @@ pub fn eval_expr(env: &Env, expr: &Expr) -> Result<Value> {
         Expr::Dict(key_values) => eval_dict(env, key_values)?,
         Expr::UnaryOp(op, expr) => eval_unary_op(env, *op, expr)?,
         Expr::BinaryOp(op, lhs, rhs) => eval_binary_op(env, *op, lhs, rhs)?,
+        Expr::If(cond, then, else_) => eval_if(env, cond, then, else_)?,
     })
 }
 
@@ -121,5 +125,16 @@ fn eval_mod(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
     match (l, r) {
         (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l % r)),
         _ => Err(EvalError::BadOperandType),
+    }
+}
+
+fn eval_if(env: &Env, cond: &Expr, then: &Expr, else_: &Expr) -> Result<Value> {
+    let Value::Bool(cond_value) = eval_expr(env, cond)? else {
+        return Err(EvalError::ConditionMustBeBool);
+    };
+    if cond_value {
+        eval_expr(env, then)
+    } else {
+        eval_expr(env, else_)
     }
 }

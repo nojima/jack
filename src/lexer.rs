@@ -68,6 +68,9 @@ fn lex(input: &str) -> LexResult {
             "null" => Token::Null,
             "true" => Token::True,
             "false" => Token::False,
+            "if" => Token::If,
+            "then" => Token::Then,
+            "else" => Token::Else,
             _ => Token::Identifier(s.to_owned()),
         };
         return ok(token, m.end());
