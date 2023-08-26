@@ -76,9 +76,22 @@ UnaryExpr: Expr = {
 
 PostfixExpr: Expr = {
     Term,
-    <expr:PostfixExpr> "." <name:Identifier> => Expr::FieldAccess(Box::new(expr), name),
-    <expr:PostfixExpr> "[" <index:Expr> "]"  => Expr::IndexAccess(Box::new(expr), Box::new(index)),
+    FunctionCall,
+    FieldAccess,
+    IndexAccess,
 };
+
+FunctionCall: Expr =
+    <func:PostfixExpr> "(" <args:CommaSeparated<Expr>> ")"
+        => Expr::FunctionCall(Box::new(func), args);
+
+FieldAccess: Expr =
+    <expr:PostfixExpr> "." <name:Identifier>
+        => Expr::FieldAccess(Box::new(expr), name);
+
+IndexAccess: Expr =
+    <expr:PostfixExpr> "[" <index:Expr> "]"
+        => Expr::IndexAccess(Box::new(expr), Box::new(index));
 
 Term: Expr = {
     Literal,

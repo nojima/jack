@@ -24,6 +24,7 @@ pub enum Expr {
     If(Box<Expr>, Box<Expr>, Box<Expr>),
     Local(Symbol, Box<Expr>, Box<Expr>),
 
+    FunctionCall(Box<Expr>, Vec<Expr>),
     FieldAccess(Box<Expr>, Symbol),
     IndexAccess(Box<Expr>, Box<Expr>),
 }
@@ -54,7 +55,6 @@ impl Debug for Expr {
 
             Expr::Dict(key_values) => {
                 write!(f, "{{")?;
-
                 let mut first = true;
                 for (k, v) in key_values {
                     if first {
@@ -74,6 +74,20 @@ impl Debug for Expr {
 
             Expr::If(cond, then, else_) => write!(f, "if {cond:?} then {then:?} else {else_:?}"),
             Expr::Local(name, expr1, expr2) => write!(f, "local {name} = {expr1:?};\n{expr2:?}"),
+
+            Expr::FunctionCall(func, args) => {
+                write!(f, "{func:?}(")?;
+                let mut first = true;
+                for arg in args {
+                    if first {
+                        first = false;
+                    } else {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{arg:?}")?;
+                }
+                write!(f, ")")
+            }
 
             Expr::FieldAccess(expr, name) => write!(f, "{expr:?}.{name}"),
             Expr::IndexAccess(expr, index) => write!(f, "{expr:?}[{index:?}]"),

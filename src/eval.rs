@@ -24,6 +24,12 @@ pub enum EvalError {
 
     #[error("cannot compare")]
     CannotCompare,
+
+    #[error("not callable")]
+    NotCallable,
+
+    #[error("wrong number of arguments")]
+    WrongNumberOfArguments,
 }
 
 #[derive(Clone, Debug)]
@@ -65,6 +71,7 @@ pub fn eval_expr(env: &Env, expr: &Expr) -> Result<Value> {
         Expr::BinaryOp(op, lhs, rhs) => eval_binary_op(env, *op, lhs, rhs),
         Expr::If(cond, then, else_) => eval_if(env, cond, then, else_),
         Expr::Local(name, expr1, expr2) => eval_local(env, name, expr1, expr2),
+        Expr::FunctionCall(func, args) => eval_function_call(env, func, args),
         Expr::FieldAccess(expr, name) => eval_field_access(env, expr, name),
         Expr::IndexAccess(expr, index) => eval_index_access(env, expr, index),
     }
@@ -209,6 +216,27 @@ fn eval_local(env: &Env, name: &Symbol, expr1: &Expr, expr2: &Expr) -> Result<Va
     let value = eval_expr(env, expr1)?;
     let new_env = env.with_variable(name.clone(), value);
     eval_expr(&new_env, expr2)
+}
+
+fn eval_function_call(env: &Env, func: &Expr, args: &[Expr]) -> Result<Value> {
+    let func_value = eval_expr(env, func)?;
+    let arg_values = args
+        .iter()
+        .map(|arg| eval_expr(env, arg))
+        .collect::<Result<Vec<_>>>()?;
+    match func_value {
+        Value::Closure(closure_env, params, expr) => {
+            if arg_values.len() != params.len() {
+                return Err(EvalError::WrongNumberOfArguments);
+            }
+            let mut new_env = closure_env;
+            for (param, arg) in params.iter().zip(arg_values) {
+                new_env = new_env.with_variable(param.clone(), arg)
+            }
+            eval_expr(&new_env, &expr)
+        }
+        _ => Err(EvalError::NotCallable),
+    }
 }
 
 fn eval_field_access(env: &Env, expr: &Expr, name: &Symbol) -> Result<Value> {
