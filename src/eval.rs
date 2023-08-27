@@ -78,19 +78,19 @@ pub fn eval_expr(env: &Env, expr: &Expr) -> Result<Value> {
 }
 
 fn eval_array(env: &Env, array: &[Expr]) -> Result<Value> {
-    let mut values = Vec::new();
+    let mut thunks = Vec::new();
     for expr in array {
-        let value = eval_expr(env, expr)?;
-        values.push(value);
+        let thunk = Thunk::new(env.clone(), Box::new(expr.clone()));
+        thunks.push(Rc::new(thunk));
     }
-    Ok(Value::Array(values.into()))
+    Ok(Value::Array(thunks.into()))
 }
 
 fn eval_dict(env: &Env, key_values: &[(CompactString, Expr)]) -> Result<Value> {
     let mut dict = HashMap::new();
     for (key, expr) in key_values {
-        let value = eval_expr(env, expr)?;
-        dict.insert(key.clone(), value);
+        let thunk = Thunk::new(env.clone(), Box::new(expr.clone()));
+        dict.insert(key.clone(), Rc::new(thunk));
     }
     Ok(Value::Dict(dict.into()))
 }
@@ -105,7 +105,7 @@ fn eval_function_literal(env: &Env, args: &[Symbol], expr: &Expr) -> Result<Valu
 
 fn eval_variable(env: &Env, name: &Symbol) -> Result<Value> {
     match env.lookup(name) {
-        Some(value) => Ok(value.unwrap()?),
+        Some(value) => Ok(value.force()?),
         None => Err(EvalError::UndefinedVariable(name.clone())),
     }
 }
@@ -186,19 +186,15 @@ fn eval_mod(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
 fn eval_eq(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
     let l = eval_expr(env, lhs)?;
     let r = eval_expr(env, rhs)?;
-    let Some(ret) = Value::try_eq(&l, &r) else {
-        return Err(EvalError::CannotCompare);
-    };
-    Ok(Value::Bool(ret))
+    let b = Value::try_eq(&l, &r)?;
+    Ok(Value::Bool(b))
 }
 
 fn eval_not_eq(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
     let l = eval_expr(env, lhs)?;
     let r = eval_expr(env, rhs)?;
-    let Some(ret) = Value::try_eq(&l, &r) else {
-        return Err(EvalError::CannotCompare);
-    };
-    Ok(Value::Bool(!ret))
+    let b = Value::try_eq(&l, &r)?;
+    Ok(Value::Bool(!b))
 }
 
 fn eval_if(env: &Env, cond: &Expr, then: &Expr, else_: &Expr) -> Result<Value> {
@@ -241,7 +237,7 @@ fn eval_field_access(env: &Env, expr: &Expr, name: &Symbol) -> Result<Value> {
     let value1 = eval_expr(env, expr)?;
     match value1 {
         Value::Dict(dict) => match dict.get(name) {
-            Some(value2) => Ok(value2.clone()),
+            Some(thunk) => Ok(thunk.force()?),
             None => Err(EvalError::FieldDoesNotExist(name.clone())),
         },
         _ => Err(EvalError::BadOperandType),
@@ -256,7 +252,7 @@ fn eval_index_access(env: &Env, expr: &Expr, index: &Expr) -> Result<Value> {
             Value::Number(i) => {
                 let index = i as usize;
                 match array.get(index) {
-                    Some(ret) => Ok(ret.clone()),
+                    Some(thunk) => Ok(thunk.force()?),
                     None => Err(EvalError::IndexOutOfBounds(index)),
                 }
             }
@@ -276,7 +272,7 @@ fn eval_index_access(env: &Env, expr: &Expr, index: &Expr) -> Result<Value> {
             Value::String(s) => {
                 let s = s.to_compact_string();
                 match dict.get(&s) {
-                    Some(ret) => Ok(ret.clone()),
+                    Some(thunk) => Ok(thunk.force()?),
                     None => Err(EvalError::FieldDoesNotExist(s)),
                 }
             }

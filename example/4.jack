@@ -1,0 +1,12 @@
+local bottom = bottom;
+
+{
+    "each element of an array should be lazy evaluated": {
+        "test1": ["OK", bottom][0],
+        "test2": [1, 2, 3] == [1, bottom],
+        "test3": [1, bottom] == [2, bottom],
+    },
+    "each value of a dict should be lazy evaluated": {
+        "test1": {foo: "OK", bar: bottom}.foo,
+    },
+}
