@@ -1,7 +1,7 @@
 // Implement single-linked list
-local cons = function(x, xs) function(f) f(x, xs);
-local car = function(ls) ls(function(x, xs) x);
-local cdr = function(ls) ls(function(x, xs) xs);
+local cons(x, xs) = function(f) f(x, xs);
+local car(ls) = ls(function(x, xs) x);
+local cdr(ls) = ls(function(x, xs) xs);
 
 // An infinite list
 local mugen = cons("∞", mugen);
