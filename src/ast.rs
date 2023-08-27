@@ -1,8 +1,7 @@
+use std::fmt::{Debug, Error, Formatter};
+use std::rc::Rc;
+
 use compact_str::CompactString;
-use std::{
-    fmt::{Debug, Error, Formatter},
-    rc::Rc,
-};
 
 use crate::symbol::Symbol;
 

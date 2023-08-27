@@ -1,9 +1,11 @@
+use std::collections::HashMap;
+use std::rc::Rc;
+
+use compact_str::{CompactString, ToCompactString};
+
 use crate::ast::{BinaryOp, Expr, UnaryOp};
 use crate::symbol::Symbol;
 use crate::value::{Thunk, Value};
-use compact_str::{CompactString, ToCompactString};
-use std::collections::HashMap;
-use std::rc::Rc;
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum EvalError {

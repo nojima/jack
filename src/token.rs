@@ -1,5 +1,6 @@
-use compact_str::CompactString;
 use std::fmt::{self, Display, Formatter};
+
+use compact_str::CompactString;
 
 #[derive(Clone, PartialEq, Debug)]
 pub enum Token {

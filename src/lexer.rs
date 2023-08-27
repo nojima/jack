@@ -1,7 +1,9 @@
-use crate::token::Token;
-use regex::Regex;
 use std::str::FromStr;
 use std::sync::OnceLock;
+
+use regex::Regex;
+
+use crate::token::Token;
 
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum LexicalError {

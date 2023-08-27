@@ -1,11 +1,13 @@
-use crate::ast::Expr;
-use crate::eval::{self, Env, EvalError};
-use crate::symbol::Symbol;
-use compact_str::CompactString;
-use serde::ser::{SerializeMap, SerializeSeq};
 use std::cell::OnceCell;
 use std::fmt::{self, Debug, Formatter};
 use std::rc::Rc;
+
+use compact_str::CompactString;
+use serde::ser::{SerializeMap, SerializeSeq};
+
+use crate::ast::Expr;
+use crate::eval::{self, Env, EvalError};
+use crate::symbol::Symbol;
 
 #[derive(Debug, Clone)]
 pub enum Value {
