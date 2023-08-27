@@ -38,7 +38,7 @@ fn execute_file(filename: &Path) -> anyhow::Result<()> {
     let node = parser.parse(lexer)?;
     let env = eval::Env::new();
     let value = eval::eval_expr(&env, &node)?;
-    println!("{value:?}");
+    println!("{}", serde_json::to_string_pretty(&value)?);
     Ok(())
 }
 
@@ -58,8 +58,7 @@ fn repl() -> anyhow::Result<()> {
                 continue;
             }
         };
-        println!("node = {node:?}");
-        println!();
+        //println!("AST = << {node:?} >>");
 
         let value = match eval::eval_expr(&env, &node) {
             Ok(v) => v,
@@ -68,7 +67,14 @@ fn repl() -> anyhow::Result<()> {
                 continue;
             }
         };
-        println!("value = {value:?}");
+        let j = match serde_json::to_string_pretty(&value) {
+            Ok(j) => j,
+            Err(e) => {
+                println!("ERROR: {e}");
+                continue;
+            }
+        };
+        println!("=> {j}");
         println!();
     }
 }

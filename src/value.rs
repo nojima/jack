@@ -2,8 +2,9 @@ use crate::ast::Expr;
 use crate::eval::{self, Env, EvalError};
 use crate::symbol::Symbol;
 use compact_str::CompactString;
+use serde::ser::{SerializeMap, SerializeSeq};
 use std::cell::OnceCell;
-use std::fmt::{Debug, Formatter, self};
+use std::fmt::{self, Debug, Formatter};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -56,6 +57,38 @@ impl Value {
             (Value::Closure(_, _, _), _) => Err(EvalError::CannotCompare),
             (_, Value::Closure(_, _, _)) => Err(EvalError::CannotCompare),
             _ => Ok(false),
+        }
+    }
+}
+
+impl serde::Serialize for Value {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        use serde::ser::Error;
+        match self {
+            Value::Null => serializer.serialize_none(),
+            Value::Bool(b) => serializer.serialize_bool(*b),
+            Value::Number(n) => serializer.serialize_f64(*n),
+            Value::String(s) => serializer.serialize_str(&*s),
+            Value::Array(array) => {
+                let mut seq = serializer.serialize_seq(Some(array.len()))?;
+                for thunk in array {
+                    let value = thunk.force().map_err(|e| Error::custom(e.to_string()))?;
+                    seq.serialize_element(&value)?;
+                }
+                seq.end()
+            }
+            Value::Dict(dict) => {
+                let mut map = serializer.serialize_map(Some(dict.len()))?;
+                for (key, thunk) in dict {
+                    let value = thunk.force().map_err(|e| Error::custom(e.to_string()))?;
+                    map.serialize_entry(key, &value)?;
+                }
+                map.end()
+            }
+            Value::Closure(_, _, _) => Err(Error::custom("closure is not serializable")),
         }
     }
 }
