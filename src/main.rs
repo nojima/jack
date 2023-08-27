@@ -6,6 +6,7 @@ mod token;
 mod value;
 
 use std::fs;
+use std::io::{stdin, Read};
 use std::path::{Path, PathBuf};
 
 use clap::Parser;
@@ -30,7 +31,14 @@ fn main() -> anyhow::Result<()> {
 }
 
 fn execute_file(filename: &Path) -> anyhow::Result<()> {
-    let source_code = fs::read_to_string(filename)?;
+    let source_code =
+        if filename.to_string_lossy() == "-" {
+            let mut buffer = String::new();
+            stdin().read_to_string(&mut buffer)?;
+            buffer
+        } else {
+            fs::read_to_string(filename)?
+        };
     let lexer = lexer::Lexer::new(&source_code);
     let parser = syntax::ExprParser::new();
     let node = parser.parse(lexer)?;
