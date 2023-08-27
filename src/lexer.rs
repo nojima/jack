@@ -149,18 +149,27 @@ fn lex_string_literal(input: &str) -> LexResult {
     ok(Token::String(buffer.into()), bytes_consumed)
 }
 
-// Same as `lex` except that it ignores leading whitespaces.
+// Same as `lex` except that it ignores leading whitespaces and comments.
 fn lex_strip(input: &str) -> LexResult {
-    let re_whitespaces = static_regex!(r"^[\t\n\r ]+");
+    #[rustfmt::skip]
+    let re_whitespaces = static_regex!(r"(?x)^
+        [\t\n\r\ ]*
+        (
+          ( // .*? (\n|$)     # line comment
+          | /\* (?s:.)*? \*/  # block comment
+          )
+          [\t\n\r\ ]*
+        )*
+    ");
     match re_whitespaces.find(input) {
-        None => lex(input),
-        Some(m) => {
+        Some(m) if !m.is_empty() => {
             let r = lex(&input[m.end()..]);
             match r {
                 Ok(Some((token, bytes_consumed))) => ok(token, m.end() + bytes_consumed),
                 _ => r,
             }
         }
+        _ => lex(input),
     }
 }
 
