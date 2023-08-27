@@ -3,7 +3,7 @@ use crate::eval::{self, Env, EvalError};
 use crate::symbol::Symbol;
 use compact_str::CompactString;
 use std::cell::OnceCell;
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter, self};
 use std::rc::Rc;
 
 #[derive(Debug, Clone)]
@@ -101,7 +101,7 @@ impl Thunk {
 }
 
 impl Debug for Thunk {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(f, "{:?}", self.force())
     }
 }
