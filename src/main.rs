@@ -10,7 +10,8 @@ use std::io::{stdin, Read};
 use std::path::{Path, PathBuf};
 
 use clap::Parser;
-use lalrpop_util::lalrpop_mod;
+use lalrpop_util::{lalrpop_mod, ParseError};
+use rustyline::DefaultEditor;
 
 lalrpop_mod!(pub syntax);
 
@@ -52,19 +53,7 @@ fn repl() -> anyhow::Result<()> {
     let env = eval::Env::new();
 
     loop {
-        let line = rl.readline("expr> ")?;
-
-        let lexer = lexer::Lexer::new(&line);
-        let parser = syntax::ExprParser::new();
-        let node = match parser.parse(lexer) {
-            Ok(node) => node,
-            Err(e) => {
-                println!("ERROR: {e}");
-                continue;
-            }
-        };
-        //println!("AST = << {node:?} >>");
-
+        let node = repl_read_and_parse(&mut rl)?;
         let value = match eval::eval_expr(&env, &node) {
             Ok(v) => v,
             Err(e) => {
@@ -81,6 +70,28 @@ fn repl() -> anyhow::Result<()> {
         };
         println!("=> {j}");
         println!();
+    }
+}
+
+fn repl_read_and_parse(rl: &mut DefaultEditor) -> anyhow::Result<ast::Expr> {
+    let mut prompt = "expr> ";
+    let mut line = String::new();
+    loop {
+        line.push_str(&rl.readline(&prompt)?);
+        let lexer = lexer::Lexer::new(&line);
+        let parser = syntax::ExprParser::new();
+        let expr = match parser.parse(lexer) {
+            Ok(node) => node,
+            Err(e) => match e {
+                ParseError::UnrecognizedEof { .. } => {
+                    line.push('\n');
+                    prompt = "....| ";
+                    continue;
+                }
+                _ => Err(e)?,
+            },
+        };
+        return Ok(expr);
     }
 }
 
