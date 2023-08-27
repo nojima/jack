@@ -97,6 +97,7 @@ impl Debug for Expr {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum UnaryOp {
     Neg,
+    Not,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]

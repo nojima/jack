@@ -80,8 +80,8 @@ AddOp: BinaryOp = {
 };
 
 MulExpr: Expr = {
-    UnaryExpr,
-    <lhs:MulExpr> <op:MulOp> <rhs:UnaryExpr>
+    PrefixExpr,
+    <lhs:MulExpr> <op:MulOp> <rhs:PrefixExpr>
         => Expr::BinaryOp(op, Box::new(lhs), Box::new(rhs)),
 };
 
@@ -91,9 +91,14 @@ MulOp: BinaryOp = {
     "%" => BinaryOp::Mod,
 };
 
-UnaryExpr: Expr = {
+PrefixExpr: Expr = {
     PostfixExpr,
-    "-" <PostfixExpr> => Expr::UnaryOp(UnaryOp::Neg, Box::new(<>)),
+    <op:PrefixOp> <expr:PostfixExpr> => Expr::UnaryOp(op, Box::new(expr)),
+};
+
+PrefixOp: UnaryOp = {
+    "-" => UnaryOp::Neg,
+    "!" => UnaryOp::Not,
 };
 
 PostfixExpr: Expr = {

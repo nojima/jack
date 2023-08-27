@@ -114,13 +114,24 @@ fn eval_variable(env: &Env, name: &Symbol) -> Result<Value> {
 
 fn eval_unary_op(env: &Env, op: UnaryOp, expr: &Expr) -> Result<Value> {
     match op {
-        UnaryOp::Neg => {
-            let value = eval_expr(env, expr)?;
-            return match value {
-                Value::Number(n) => Ok(Value::Number(-n)),
-                _ => Err(EvalError::BadOperandType),
-            };
-        }
+        UnaryOp::Neg => eval_neg(env, expr),
+        UnaryOp::Not => eval_not(env, expr),
+    }
+}
+
+fn eval_neg(env: &Env, expr: &Expr) -> Result<Value> {
+    let value = eval_expr(env, expr)?;
+    match value {
+        Value::Number(n) => Ok(Value::Number(-n)),
+        _ => Err(EvalError::BadOperandType),
+    }
+}
+
+fn eval_not(env: &Env, expr: &Expr) -> Result<Value> {
+    let value = eval_expr(env, expr)?;
+    match value {
+        Value::Bool(b) => Ok(Value::Bool(!b)),
+        _ => Err(EvalError::BadOperandType),
     }
 }
 
