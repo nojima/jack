@@ -21,7 +21,7 @@ CommaSeparated<T>: Vec<T> = {
 //-----------------------------------------------------------------------------
 
 pub Expr: Expr =  {
-    CondExpr,
+    OrExpr,
     IfExpr,
     LocalExpr,
     Function,
@@ -35,13 +35,25 @@ LocalExpr: Expr =
     "local" <name:Identifier> "=" <expr1:Expr> ";" <expr2:Expr>
         => Expr::Local(name, Box::new(expr1), Box::new(expr2));
 
-CondExpr: Expr = {
+OrExpr: Expr = {
+    AndExpr,
+    <lhs:OrExpr> "||" <rhs:AndExpr>
+        => Expr::BinaryOp(BinaryOp::Or, Box::new(lhs), Box::new(rhs)),
+}
+
+AndExpr: Expr = {
+    CompExpr,
+    <lhs:AndExpr> "&&" <rhs:CompExpr>
+        => Expr::BinaryOp(BinaryOp::And, Box::new(lhs), Box::new(rhs)),
+}
+
+CompExpr: Expr = {
     AddExpr,
-    <lhs:AddExpr> <op:CondOp> <rhs:AddExpr>
+    <lhs:AddExpr> <op:CompOp> <rhs:AddExpr>
         => Expr::BinaryOp(op, Box::new(lhs), Box::new(rhs)),
 }
 
-CondOp: BinaryOp = {
+CompOp: BinaryOp = {
     "==" => BinaryOp::Eq,
     "!=" => BinaryOp::NotEq,
 };
@@ -174,5 +186,9 @@ extern {
         "==" => Token::EqEq,
         "!" => Token::Exclamation,
         "!=" => Token::NotEq,
+        "&" => Token::Ampersand,
+        "&&" => Token::AndAnd,
+        "|" => Token::Pipe,
+        "||" => Token::OrOr,
     }
 }

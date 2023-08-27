@@ -109,4 +109,6 @@ pub enum BinaryOp {
     Mod,
     Eq,
     NotEq,
+    And,
+    Or,
 }

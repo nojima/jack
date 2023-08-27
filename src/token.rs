@@ -35,6 +35,10 @@ pub enum Token {
     EqEq,
     Exclamation,
     NotEq,
+    Ampersand,
+    AndAnd,
+    Pipe,
+    OrOr,
 }
 
 impl Display for Token {

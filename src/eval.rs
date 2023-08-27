@@ -131,6 +131,8 @@ fn eval_binary_op(env: &Env, op: BinaryOp, lhs: &Expr, rhs: &Expr) -> Result<Val
         BinaryOp::Mod => eval_mod(env, lhs, rhs),
         BinaryOp::Eq => eval_eq(env, lhs, rhs),
         BinaryOp::NotEq => eval_not_eq(env, lhs, rhs),
+        BinaryOp::And => eval_and(env, lhs, rhs),
+        BinaryOp::Or => eval_or(env, lhs, rhs),
     }
 }
 
@@ -195,6 +197,26 @@ fn eval_not_eq(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
     let r = eval_expr(env, rhs)?;
     let b = Value::try_eq(&l, &r)?;
     Ok(Value::Bool(!b))
+}
+
+fn eval_and(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
+    let Value::Bool(l) = eval_expr(env, lhs)? else {
+        return Err(EvalError::BadOperandType);
+    };
+    if !l {
+        return Ok(Value::Bool(false));
+    }
+    eval_expr(env, rhs)
+}
+
+fn eval_or(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
+    let Value::Bool(l) = eval_expr(env, lhs)? else {
+        return Err(EvalError::BadOperandType);
+    };
+    if l {
+        return Ok(Value::Bool(true));
+    }
+    eval_expr(env, rhs)
 }
 
 fn eval_if(env: &Env, cond: &Expr, then: &Expr, else_: &Expr) -> Result<Value> {
