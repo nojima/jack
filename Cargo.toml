@@ -12,6 +12,7 @@ lalrpop = "0.20.0"
 anyhow = "1"
 clap = { version = "4.4.0", features = ["derive"] }
 compact_str = { version = "0.7.1", features = ["serde"] }
+enum-assoc = "1.1.0"
 im-rc = "15.1.0"
 lalrpop-util = { version = "0.20.0", features = ["lexer"] }
 regex = "1"

@@ -8,15 +8,30 @@ use serde::ser::{SerializeMap, SerializeSeq};
 use crate::ast::Expr;
 use crate::eval::{self, Env, EvalError};
 use crate::symbol::Symbol;
+use crate::types::Erasure;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, enum_assoc::Assoc)]
+#[func(pub fn erasure(&self) -> Erasure)]
 pub enum Value {
+    #[assoc(erasure = Erasure::Null)]
     Null,
+
+    #[assoc(erasure = Erasure::Bool)]
     Bool(bool),
+
+    #[assoc(erasure = Erasure::Number)]
     Number(f64),
+
+    #[assoc(erasure = Erasure::String)]
     String(Rc<String>),
+
+    #[assoc(erasure = Erasure::Array)]
     Array(im_rc::Vector<Rc<Thunk>>),
+
+    #[assoc(erasure = Erasure::Dict)]
     Dict(im_rc::HashMap<CompactString, Rc<Thunk>>),
+
+    #[assoc(erasure = Erasure::Function)]
     Closure(Env, Vec<Symbol>, Rc<Expr>),
 }
 

@@ -5,15 +5,16 @@ use compact_str::{CompactString, ToCompactString};
 
 use crate::ast::{BinaryOp, Expr, UnaryOp};
 use crate::symbol::Symbol;
+use crate::types::Erasure;
 use crate::value::{Thunk, Value};
 
 #[derive(Debug, Clone, thiserror::Error)]
 pub enum EvalError {
-    #[error("bad operand type")]
-    BadOperandType,
+    #[error("bad operand type: expected={expected}, actual={actual}")]
+    BadOperandType { expected: String, actual: String },
 
     #[error("condition of if-expression must be a bool")]
-    ConditionMustBeBool,
+    ConditionMustBeBool { actual: Erasure },
 
     #[error("undefined variable: {0}")]
     UndefinedVariable(Symbol),
@@ -123,7 +124,10 @@ fn eval_neg(env: &Env, expr: &Expr) -> Result<Value> {
     let value = eval_expr(env, expr)?;
     match value {
         Value::Number(n) => Ok(Value::Number(-n)),
-        _ => Err(EvalError::BadOperandType),
+        _ => Err(EvalError::BadOperandType {
+            expected: Erasure::Number.to_string(),
+            actual: value.erasure().to_string(),
+        }),
     }
 }
 
@@ -131,7 +135,10 @@ fn eval_not(env: &Env, expr: &Expr) -> Result<Value> {
     let value = eval_expr(env, expr)?;
     match value {
         Value::Bool(b) => Ok(Value::Bool(!b)),
-        _ => Err(EvalError::BadOperandType),
+        _ => Err(EvalError::BadOperandType {
+            expected: Erasure::Bool.to_string(),
+            actual: value.erasure().to_string(),
+        }),
     }
 }
 
@@ -158,7 +165,10 @@ fn eval_add(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
             let ret = (*l).clone() + &r;
             Ok(Value::String(Rc::new(ret)))
         }
-        _ => Err(EvalError::BadOperandType),
+        (l, r) => Err(EvalError::BadOperandType {
+            expected: "(Number + Number) or (String + String)".to_owned(),
+            actual: format!("{} + {}", l.erasure(), r.erasure()),
+        }),
     }
 }
 
@@ -167,7 +177,10 @@ fn eval_sub(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
     let r = eval_expr(env, rhs)?;
     match (l, r) {
         (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l - r)),
-        _ => Err(EvalError::BadOperandType),
+        (l, r) => Err(EvalError::BadOperandType {
+            expected: "Number - Number".to_string(),
+            actual: format!("{} - {}", l.erasure(), r.erasure()),
+        }),
     }
 }
 
@@ -176,7 +189,10 @@ fn eval_mul(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
     let r = eval_expr(env, rhs)?;
     match (l, r) {
         (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l * r)),
-        _ => Err(EvalError::BadOperandType),
+        (l, r) => Err(EvalError::BadOperandType {
+            expected: "Number * Number".to_string(),
+            actual: format!("{} * {}", l.erasure(), r.erasure()),
+        }),
     }
 }
 
@@ -185,7 +201,10 @@ fn eval_div(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
     let r = eval_expr(env, rhs)?;
     match (l, r) {
         (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l / r)),
-        _ => Err(EvalError::BadOperandType),
+        (l, r) => Err(EvalError::BadOperandType {
+            expected: "Number / Number".to_string(),
+            actual: format!("{} / {}", l.erasure(), r.erasure()),
+        }),
     }
 }
 
@@ -194,7 +213,10 @@ fn eval_mod(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
     let r = eval_expr(env, rhs)?;
     match (l, r) {
         (Value::Number(l), Value::Number(r)) => Ok(Value::Number(l % r)),
-        _ => Err(EvalError::BadOperandType),
+        (l, r) => Err(EvalError::BadOperandType {
+            expected: "Number % Number".to_string(),
+            actual: format!("{} % {}", l.erasure(), r.erasure()),
+        }),
     }
 }
 
@@ -213,8 +235,14 @@ fn eval_not_eq(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
 }
 
 fn eval_and(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
-    let Value::Bool(l) = eval_expr(env, lhs)? else {
-        return Err(EvalError::BadOperandType);
+    let l = match eval_expr(env, lhs)? {
+        Value::Bool(l) => l,
+        value => {
+            return Err(EvalError::BadOperandType {
+                expected: Erasure::Bool.to_string(),
+                actual: value.erasure().to_string(),
+            });
+        }
     };
     if !l {
         return Ok(Value::Bool(false));
@@ -223,8 +251,14 @@ fn eval_and(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
 }
 
 fn eval_or(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
-    let Value::Bool(l) = eval_expr(env, lhs)? else {
-        return Err(EvalError::BadOperandType);
+    let l = match eval_expr(env, lhs)? {
+        Value::Bool(l) => l,
+        value => {
+            return Err(EvalError::BadOperandType {
+                expected: Erasure::Bool.to_string(),
+                actual: value.erasure().to_string(),
+            });
+        }
     };
     if l {
         return Ok(Value::Bool(true));
@@ -233,8 +267,13 @@ fn eval_or(env: &Env, lhs: &Expr, rhs: &Expr) -> Result<Value> {
 }
 
 fn eval_if(env: &Env, cond: &Expr, then: &Expr, else_: &Expr) -> Result<Value> {
-    let Value::Bool(cond_value) = eval_expr(env, cond)? else {
-        return Err(EvalError::ConditionMustBeBool);
+    let cond_value = match eval_expr(env, cond)? {
+        Value::Bool(b) => b,
+        value => {
+            return Err(EvalError::ConditionMustBeBool {
+                actual: value.erasure(),
+            });
+        }
     };
     if cond_value {
         eval_expr(env, then)
@@ -269,13 +308,15 @@ fn eval_function_call(env: &Env, func: &Expr, args: &[Expr]) -> Result<Value> {
 }
 
 fn eval_field_access(env: &Env, expr: &Expr, name: &Symbol) -> Result<Value> {
-    let value1 = eval_expr(env, expr)?;
-    match value1 {
+    match eval_expr(env, expr)? {
         Value::Dict(dict) => match dict.get(name) {
             Some(thunk) => Ok(thunk.force()?),
             None => Err(EvalError::FieldDoesNotExist(name.clone())),
         },
-        _ => Err(EvalError::BadOperandType),
+        value => Err(EvalError::BadOperandType {
+            expected: Erasure::Dict.to_string(),
+            actual: value.erasure().to_string(),
+        }),
     }
 }
 
@@ -291,7 +332,10 @@ fn eval_index_access(env: &Env, expr: &Expr, index: &Expr) -> Result<Value> {
                     None => Err(EvalError::IndexOutOfBounds(index)),
                 }
             }
-            _ => Err(EvalError::BadOperandType),
+            _ => Err(EvalError::BadOperandType {
+                expected: Erasure::Number.to_string(),
+                actual: index_value.erasure().to_string(),
+            }),
         },
         Value::String(str) => match index_value {
             Value::Number(i) => {
@@ -301,7 +345,10 @@ fn eval_index_access(env: &Env, expr: &Expr, index: &Expr) -> Result<Value> {
                     None => Err(EvalError::IndexOutOfBounds(index)),
                 }
             }
-            _ => Err(EvalError::BadOperandType),
+            _ => Err(EvalError::BadOperandType {
+                expected: Erasure::Number.to_string(),
+                actual: index_value.erasure().to_string(),
+            }),
         },
         Value::Dict(dict) => match index_value {
             Value::String(s) => {
@@ -311,8 +358,19 @@ fn eval_index_access(env: &Env, expr: &Expr, index: &Expr) -> Result<Value> {
                     None => Err(EvalError::FieldDoesNotExist(s)),
                 }
             }
-            _ => Err(EvalError::BadOperandType),
+            _ => Err(EvalError::BadOperandType {
+                expected: Erasure::String.to_string(),
+                actual: index_value.erasure().to_string(),
+            }),
         },
-        _ => Err(EvalError::BadOperandType),
+        _ => Err(EvalError::BadOperandType {
+            expected: format!(
+                "{} or {} or {}",
+                Erasure::Array,
+                Erasure::String,
+                Erasure::Dict
+            ),
+            actual: collection_value.erasure().to_string(),
+        }),
     }
 }

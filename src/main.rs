@@ -3,6 +3,7 @@ mod eval;
 mod lexer;
 mod symbol;
 mod token;
+mod types;
 mod value;
 
 use std::fs;
