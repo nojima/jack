@@ -149,10 +149,17 @@ Array: Vec<Expr> =
     "[" <CommaSeparated<Expr>> "]";
 
 Dict: Vec<(CompactString, Expr)> =
-    "{" <CommaSeparated<KeyValue>> "}";
+    "{" <CommaSeparated<DictKeyValue>> "}";
 
-KeyValue: (CompactString, Expr) =
-    <k:Key> ":" <v:Expr> => (k.into(), v);
+DictKeyValue: (CompactString, Expr) = {
+    <k:Key> ":" <v:Expr> => (k.into(), v),
+    <name:Identifier> "(" <params:CommaSeparated<Identifier>> ")" ":" <expr:Expr> => {
+        // Desuger: <name>(<params>): <expr>
+        //       => <name>: function(<params>) <expr>
+        let func = Expr::Function(params, Box::new(expr));
+        (name.into(), func)
+    }
+};
 
 Key: CompactString = {
     String => <>.into(),
