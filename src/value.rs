@@ -99,7 +99,9 @@ impl serde::Serialize for Value {
             }
             Value::Dict(dict) => {
                 let mut map = serializer.serialize_map(Some(dict.len()))?;
-                for (key, thunk) in dict {
+                let mut items: Vec<(_, _)> = dict.iter().collect();
+                items.sort_unstable_by(|(k1, _), (k2, _)| k1.cmp(k2));
+                for (key, thunk) in items {
                     let value = thunk.force().map_err(|e| Error::custom(e.to_string()))?;
                     map.serialize_entry(key, &value)?;
                 }
