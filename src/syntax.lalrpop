@@ -31,19 +31,18 @@ IfExpr: Expr =
     "if" <cond:Expr> "then" <then:Expr> "else" <else_:Expr>
         => Expr::If(Box::new(cond), Box::new(then), Box::new(else_));
 
-LocalExpr: Expr =
-    "local" <name:Identifier> <params:("(" <CommaSeparated<FunctionParam>> ")")?> "=" <expr1:Expr> ";" <expr2:Expr>
+LocalExpr: Expr = {
+    "local" <name:Identifier> "=" <expr1:Expr> ";" <expr2:Expr>
+        => Expr::Local(name, Box::new(expr1), Box::new(expr2)),
+    "local" <name:Identifier> <type_params:TypeParams?> <params:FunctionParams> "=" <expr1:Expr> ";" <expr2:Expr>
         => {
-            match params {
-                None => Expr::Local(name, Box::new(expr1), Box::new(expr2)),
-                Some(params) => {
-                    // Desuger: local <name>(<params>) = <expr1>; <expr2>
-                    //       => local <name> = function(<params>) <expr1>; <expr2>
-                    let func = Expr::Function(params, Box::new(expr1));
-                    Expr::Local(name, Box::new(func), Box::new(expr2))
-                }
-            }
-        };
+            // Desuger: local <name>(<params>) = <expr1>; <expr2>
+            //       => local <name> = function(<params>) <expr1>; <expr2>
+            let type_params = type_params.unwrap_or(vec![]);
+            let func = Expr::Function(type_params, params, Box::new(expr1));
+            Expr::Local(name, Box::new(func), Box::new(expr2))
+        },
+};
 
 OrExpr: Expr = {
     AndExpr,
@@ -153,12 +152,13 @@ Dict: Vec<(CompactString, Expr)> =
 
 DictKeyValue: (CompactString, Expr) = {
     <k:Key> ":" <v:Expr> => (k.into(), v),
-    <name:Identifier> "(" <params:CommaSeparated<FunctionParam>> ")" ":" <expr:Expr> => {
+    <name:Identifier> <type_params:TypeParams?> <params:FunctionParams> ":" <expr:Expr> => {
         // Desuger: <name>(<params>): <expr>
         //       => <name>: function(<params>) <expr>
-        let func = Expr::Function(params, Box::new(expr));
+        let type_params = type_params.unwrap_or(vec![]);
+        let func = Expr::Function(type_params, params, Box::new(expr));
         (name.into(), func)
-    }
+    },
 };
 
 Key: CompactString = {
@@ -167,8 +167,13 @@ Key: CompactString = {
 };
 
 Function: Expr =
-    "function" "(" <params:CommaSeparated<FunctionParam>> ")" <expr:Expr>
-        => Expr::Function(params, Box::new(expr));
+    "function" <type_params:TypeParams?> <params:FunctionParams> <expr:Expr> => {
+        let type_params = type_params.unwrap_or(vec![]);
+        Expr::Function(type_params, params, Box::new(expr))
+    };
+
+FunctionParams: Vec<(CompactString, TypeExpr)> =
+    "(" <CommaSeparated<FunctionParam>> ")";
 
 FunctionParam: (CompactString, TypeExpr) =
     <name:Identifier> ":" <type_expr:TypeExpr>
@@ -180,6 +185,9 @@ TypeExpr: TypeExpr = {
     Identifier
         => TypeExpr::Simple(<>),
 };
+
+TypeParams: Vec<CompactString> =
+    "[" <CommaSeparated<Identifier>> "]";
  
 extern {
     type Location = usize;

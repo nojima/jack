@@ -13,7 +13,7 @@ pub enum Expr {
     String(Rc<String>),
     Array(Vec<Expr>),
     Dict(Vec<(CompactString, Expr)>),
-    Function(Vec<(Symbol, TypeExpr)>, Box<Expr>),
+    Function(Vec<Symbol>, Vec<(Symbol, TypeExpr)>, Box<Expr>),
 
     Variable(Symbol),
 
@@ -66,7 +66,13 @@ impl Debug for Expr {
                 write!(f, "}}")
             }
 
-            Expr::Function(args, expr) => write!(f, "function{args:?} {expr:?}"),
+            Expr::Function(type_params, params, expr) => {
+                if type_params.is_empty() {
+                    write!(f, "function{params:?} {expr:?}")
+                } else {
+                    write!(f, "function[{type_params:?}]{params:?} {expr:?}")
+                }
+            },
 
             Expr::UnaryOp(op, expr) => write!(f, "{op:?}({expr:?})"),
             Expr::BinaryOp(op, lhs, rhs) => write!(f, "{op:?}({lhs:?}, {rhs:?})"),

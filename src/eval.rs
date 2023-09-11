@@ -68,7 +68,7 @@ pub fn eval_expr(env: &Env, expr: &Expr) -> Result<Value> {
         Expr::String(s) => Ok(Value::String(Rc::clone(s))),
         Expr::Array(array) => eval_array(env, array),
         Expr::Dict(key_values) => eval_dict(env, key_values),
-        Expr::Function(params, expr) => eval_function_literal(env, params, expr),
+        Expr::Function(_, params, expr) => eval_function_literal(env, params, expr),
         Expr::Variable(name) => eval_variable(env, name),
         Expr::UnaryOp(op, expr) => eval_unary_op(env, *op, expr),
         Expr::BinaryOp(op, lhs, rhs) => eval_binary_op(env, *op, lhs, rhs),
