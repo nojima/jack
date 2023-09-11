@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use compact_str::{CompactString, ToCompactString};
 
-use crate::ast::{BinaryOp, Expr, UnaryOp, TypeExpr};
+use crate::ast::{BinaryOp, Expr, TypeExpr, UnaryOp};
 use crate::symbol::Symbol;
 use crate::types::Erasure;
 use crate::value::{Thunk, Value};

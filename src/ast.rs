@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Error, Formatter, Display};
+use std::fmt::{Debug, Display, Error, Formatter};
 use std::rc::Rc;
 
 use compact_str::CompactString;
@@ -72,7 +72,7 @@ impl Debug for Expr {
                 } else {
                     write!(f, "function[{type_params:?}]{params:?} {expr:?}")
                 }
-            },
+            }
 
             Expr::UnaryOp(op, expr) => write!(f, "{op:?}({expr:?})"),
             Expr::BinaryOp(op, lhs, rhs) => write!(f, "{op:?}({lhs:?}, {rhs:?})"),
