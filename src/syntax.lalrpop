@@ -1,5 +1,5 @@
 use compact_str::CompactString;
-use crate::ast::{Expr, UnaryOp, BinaryOp};
+use crate::ast::{Expr, UnaryOp, BinaryOp, TypeExpr};
 use crate::lexer;
 use crate::token::Token;
 use std::rc::Rc;
@@ -32,7 +32,7 @@ IfExpr: Expr =
         => Expr::If(Box::new(cond), Box::new(then), Box::new(else_));
 
 LocalExpr: Expr =
-    "local" <name:Identifier> <params:("(" <CommaSeparated<Identifier>> ")")?> "=" <expr1:Expr> ";" <expr2:Expr>
+    "local" <name:Identifier> <params:("(" <CommaSeparated<FunctionParam>> ")")?> "=" <expr1:Expr> ";" <expr2:Expr>
         => {
             match params {
                 None => Expr::Local(name, Box::new(expr1), Box::new(expr2)),
@@ -42,7 +42,7 @@ LocalExpr: Expr =
                     let func = Expr::Function(params, Box::new(expr1));
                     Expr::Local(name, Box::new(func), Box::new(expr2))
                 }
-            } 
+            }
         };
 
 OrExpr: Expr = {
@@ -153,7 +153,7 @@ Dict: Vec<(CompactString, Expr)> =
 
 DictKeyValue: (CompactString, Expr) = {
     <k:Key> ":" <v:Expr> => (k.into(), v),
-    <name:Identifier> "(" <params:CommaSeparated<Identifier>> ")" ":" <expr:Expr> => {
+    <name:Identifier> "(" <params:CommaSeparated<FunctionParam>> ")" ":" <expr:Expr> => {
         // Desuger: <name>(<params>): <expr>
         //       => <name>: function(<params>) <expr>
         let func = Expr::Function(params, Box::new(expr));
@@ -167,8 +167,19 @@ Key: CompactString = {
 };
 
 Function: Expr =
-    "function" "(" <params:CommaSeparated<Identifier>> ")" <expr:Expr>
+    "function" "(" <params:CommaSeparated<FunctionParam>> ")" <expr:Expr>
         => Expr::Function(params, Box::new(expr));
+
+FunctionParam: (CompactString, TypeExpr) =
+    <name:Identifier> ":" <type_expr:TypeExpr>
+        => (name, type_expr);
+
+TypeExpr: TypeExpr = {
+    <name:Identifier> "[" <params:CommaSeparated<TypeExpr>> "]"
+        => TypeExpr::Constructor(name, params),
+    Identifier
+        => TypeExpr::Simple(<>),
+};
  
 extern {
     type Location = usize;

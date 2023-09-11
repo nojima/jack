@@ -1,3 +1,5 @@
+/* THIS EXAMPLE **CANNOT** BE EXECUTED NOW */
+
 // Implement single-linked list
 local cons(x, xs) = function(f) f(x, xs);
 local car(ls) = ls(function(x, xs) x);

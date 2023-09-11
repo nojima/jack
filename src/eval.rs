@@ -3,7 +3,7 @@ use std::rc::Rc;
 
 use compact_str::{CompactString, ToCompactString};
 
-use crate::ast::{BinaryOp, Expr, UnaryOp};
+use crate::ast::{BinaryOp, Expr, UnaryOp, TypeExpr};
 use crate::symbol::Symbol;
 use crate::types::Erasure;
 use crate::value::{Thunk, Value};
@@ -68,7 +68,7 @@ pub fn eval_expr(env: &Env, expr: &Expr) -> Result<Value> {
         Expr::String(s) => Ok(Value::String(Rc::clone(s))),
         Expr::Array(array) => eval_array(env, array),
         Expr::Dict(key_values) => eval_dict(env, key_values),
-        Expr::Function(args, expr) => eval_function_literal(env, args, expr),
+        Expr::Function(params, expr) => eval_function_literal(env, params, expr),
         Expr::Variable(name) => eval_variable(env, name),
         Expr::UnaryOp(op, expr) => eval_unary_op(env, *op, expr),
         Expr::BinaryOp(op, lhs, rhs) => eval_binary_op(env, *op, lhs, rhs),
@@ -98,10 +98,10 @@ fn eval_dict(env: &Env, key_values: &[(CompactString, Expr)]) -> Result<Value> {
     Ok(Value::Dict(dict.into()))
 }
 
-fn eval_function_literal(env: &Env, args: &[Symbol], expr: &Expr) -> Result<Value> {
+fn eval_function_literal(env: &Env, params: &[(Symbol, TypeExpr)], expr: &Expr) -> Result<Value> {
     Ok(Value::Closure(
         env.clone(),
-        args.to_vec(),
+        params.iter().map(|(name, _)| name).cloned().collect(),
         Rc::new(expr.clone()),
     ))
 }
