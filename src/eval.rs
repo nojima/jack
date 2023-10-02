@@ -309,7 +309,7 @@ fn eval_function_call(env: &Env, func: &Expr, args: &[Expr]) -> Result<Value> {
 
 fn eval_field_access(env: &Env, expr: &Expr, name: &Symbol) -> Result<Value> {
     match eval_expr(env, expr)? {
-        Value::Dict(dict) => match dict.get(name) {
+        Value::Dict(dict) => match dict.get(&name.to_compact_string()) {
             Some(thunk) => Ok(thunk.force()?),
             None => Err(EvalError::FieldDoesNotExist(name.clone())),
         },
@@ -355,7 +355,7 @@ fn eval_index_access(env: &Env, expr: &Expr, index: &Expr) -> Result<Value> {
                 let s = s.to_compact_string();
                 match dict.get(&s) {
                     Some(thunk) => Ok(thunk.force()?),
-                    None => Err(EvalError::FieldDoesNotExist(s)),
+                    None => Err(EvalError::FieldDoesNotExist(s.into())),
                 }
             }
             _ => Err(EvalError::BadOperandType {

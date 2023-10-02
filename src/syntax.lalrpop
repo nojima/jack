@@ -33,14 +33,16 @@ IfExpr: Expr =
 
 LocalExpr: Expr = {
     "local" <name:Identifier> "=" <expr1:Expr> ";" <expr2:Expr>
-        => Expr::Local(name, Box::new(expr1), Box::new(expr2)),
+        => Expr::Local(name.into(), Box::new(expr1), Box::new(expr2)),
     "local" <name:Identifier> <type_params:TypeParams?> <params:FunctionParams> "=" <expr1:Expr> ";" <expr2:Expr>
         => {
             // Desuger: local <name>(<params>) = <expr1>; <expr2>
             //       => local <name> = function(<params>) <expr1>; <expr2>
             let type_params = type_params.unwrap_or(vec![]);
+            let type_params = type_params.into_iter().map(|s| s.into()).collect();
+            let params = params.into_iter().map(|(k, v)| (k.into(), v)).collect();
             let func = Expr::Function(type_params, params, Box::new(expr1));
-            Expr::Local(name, Box::new(func), Box::new(expr2))
+            Expr::Local(name.into(), Box::new(func), Box::new(expr2))
         },
 };
 
@@ -113,7 +115,7 @@ FunctionCall: Expr =
 
 FieldAccess: Expr =
     <expr:PostfixExpr> "." <name:Identifier>
-        => Expr::FieldAccess(Box::new(expr), name);
+        => Expr::FieldAccess(Box::new(expr), name.into());
 
 IndexAccess: Expr =
     <expr:PostfixExpr> "[" <index:Expr> "]"
@@ -126,7 +128,7 @@ Term: Expr = {
 };
 
 Variable: Expr =
-    Identifier => Expr::Variable(<>);
+    Identifier => Expr::Variable(<>.into());
 
 Literal: Expr = {
     "true"  => Expr::Bool(true),
@@ -156,6 +158,8 @@ DictKeyValue: (CompactString, Expr) = {
         // Desuger: <name>(<params>): <expr>
         //       => <name>: function(<params>) <expr>
         let type_params = type_params.unwrap_or(vec![]);
+        let type_params = type_params.into_iter().map(|s| s.into()).collect();
+        let params = params.into_iter().map(|(k, v)| (k.into(), v)).collect();
         let func = Expr::Function(type_params, params, Box::new(expr));
         (name.into(), func)
     },
@@ -169,6 +173,8 @@ Key: CompactString = {
 Function: Expr =
     "function" <type_params:TypeParams?> <params:FunctionParams> <expr:Expr> => {
         let type_params = type_params.unwrap_or(vec![]);
+        let type_params = type_params.into_iter().map(|s| s.into()).collect();
+        let params = params.into_iter().map(|(k, v)| (k.into(), v)).collect();
         Expr::Function(type_params, params, Box::new(expr))
     };
 

@@ -430,6 +430,7 @@ dependencies = [
  "im-rc",
  "lalrpop",
  "lalrpop-util",
+ "once_cell",
  "regex",
  "rustyline",
  "serde",
