@@ -1,5 +1,5 @@
 use compact_str::CompactString;
-use crate::ast::{Expr, UnaryOp, BinaryOp};
+use crate::ast::{Expr, UnaryOp, BinaryOp, TypeExpr};
 use crate::lexer;
 use crate::token::Token;
 use std::rc::Rc;
@@ -31,19 +31,20 @@ IfExpr: Expr =
     "if" <cond:Expr> "then" <then:Expr> "else" <else_:Expr>
         => Expr::If(Box::new(cond), Box::new(then), Box::new(else_));
 
-LocalExpr: Expr =
-    "local" <name:Identifier> <params:("(" <CommaSeparated<Identifier>> ")")?> "=" <expr1:Expr> ";" <expr2:Expr>
+LocalExpr: Expr = {
+    "local" <name:Identifier> "=" <expr1:Expr> ";" <expr2:Expr>
+        => Expr::Local(name.into(), Box::new(expr1), Box::new(expr2)),
+    "local" <name:Identifier> <type_params:TypeParams?> <params:FunctionParams> "=" <expr1:Expr> ";" <expr2:Expr>
         => {
-            match params {
-                None => Expr::Local(name, Box::new(expr1), Box::new(expr2)),
-                Some(params) => {
-                    // Desuger: local <name>(<params>) = <expr1>; <expr2>
-                    //       => local <name> = function(<params>) <expr1>; <expr2>
-                    let func = Expr::Function(params, Box::new(expr1));
-                    Expr::Local(name, Box::new(func), Box::new(expr2))
-                }
-            } 
-        };
+            // Desuger: local <name>(<params>) = <expr1>; <expr2>
+            //       => local <name> = function(<params>) <expr1>; <expr2>
+            let type_params = type_params.unwrap_or(vec![]);
+            let type_params = type_params.into_iter().map(|s| s.into()).collect();
+            let params = params.into_iter().map(|(k, v)| (k.into(), v)).collect();
+            let func = Expr::Function(type_params, params, Box::new(expr1));
+            Expr::Local(name.into(), Box::new(func), Box::new(expr2))
+        },
+};
 
 OrExpr: Expr = {
     AndExpr,
@@ -114,7 +115,7 @@ FunctionCall: Expr =
 
 FieldAccess: Expr =
     <expr:PostfixExpr> "." <name:Identifier>
-        => Expr::FieldAccess(Box::new(expr), name);
+        => Expr::FieldAccess(Box::new(expr), name.into());
 
 IndexAccess: Expr =
     <expr:PostfixExpr> "[" <index:Expr> "]"
@@ -127,7 +128,7 @@ Term: Expr = {
 };
 
 Variable: Expr =
-    Identifier => Expr::Variable(<>);
+    Identifier => Expr::Variable(<>.into());
 
 Literal: Expr = {
     "true"  => Expr::Bool(true),
@@ -153,12 +154,15 @@ Dict: Vec<(CompactString, Expr)> =
 
 DictKeyValue: (CompactString, Expr) = {
     <k:Key> ":" <v:Expr> => (k.into(), v),
-    <name:Identifier> "(" <params:CommaSeparated<Identifier>> ")" ":" <expr:Expr> => {
+    <name:Identifier> <type_params:TypeParams?> <params:FunctionParams> ":" <expr:Expr> => {
         // Desuger: <name>(<params>): <expr>
         //       => <name>: function(<params>) <expr>
-        let func = Expr::Function(params, Box::new(expr));
+        let type_params = type_params.unwrap_or(vec![]);
+        let type_params = type_params.into_iter().map(|s| s.into()).collect();
+        let params = params.into_iter().map(|(k, v)| (k.into(), v)).collect();
+        let func = Expr::Function(type_params, params, Box::new(expr));
         (name.into(), func)
-    }
+    },
 };
 
 Key: CompactString = {
@@ -167,8 +171,29 @@ Key: CompactString = {
 };
 
 Function: Expr =
-    "function" "(" <params:CommaSeparated<Identifier>> ")" <expr:Expr>
-        => Expr::Function(params, Box::new(expr));
+    "function" <type_params:TypeParams?> <params:FunctionParams> <expr:Expr> => {
+        let type_params = type_params.unwrap_or(vec![]);
+        let type_params = type_params.into_iter().map(|s| s.into()).collect();
+        let params = params.into_iter().map(|(k, v)| (k.into(), v)).collect();
+        Expr::Function(type_params, params, Box::new(expr))
+    };
+
+FunctionParams: Vec<(CompactString, TypeExpr)> =
+    "(" <CommaSeparated<FunctionParam>> ")";
+
+FunctionParam: (CompactString, TypeExpr) =
+    <name:Identifier> ":" <type_expr:TypeExpr>
+        => (name, type_expr);
+
+TypeExpr: TypeExpr = {
+    <name:Identifier> "[" <params:CommaSeparated<TypeExpr>> "]"
+        => TypeExpr::Constructor(name, params),
+    Identifier
+        => TypeExpr::Simple(<>),
+};
+
+TypeParams: Vec<CompactString> =
+    "[" <CommaSeparated<Identifier>> "]";
  
 extern {
     type Location = usize;

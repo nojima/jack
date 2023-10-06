@@ -22,7 +22,7 @@ expr> // JSON object.
 }
 
 expr> // A function that returns an object.
-....| local Person(name) = {
+....| local Person(name: String) = {
 ....|   name: name,
 ....|   welcome: "Hello " + name + "!",
 ....| };
@@ -42,7 +42,7 @@ expr> // A function that returns an object.
 }
 
 expr> // Recursive function.
-....| local fact(n) =
+....| local fact(n: Number) =
 ....|   if n == 0 then
 ....|     1
 ....|   else
@@ -50,6 +50,7 @@ expr> // Recursive function.
 ....| fact(5)
 => 120.0
 
+/* THIS EXAMPLE CANNOT BE EXECUTED NOW */
 expr> // Lazy evaluation.
 ....| local cons(x, xs) = [x, xs];
 ....| local head(ls) = ls[0];

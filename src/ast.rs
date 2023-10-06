@@ -1,4 +1,4 @@
-use std::fmt::{Debug, Error, Formatter};
+use std::fmt::{Debug, Display, Error, Formatter};
 use std::rc::Rc;
 
 use compact_str::CompactString;
@@ -13,7 +13,7 @@ pub enum Expr {
     String(Rc<String>),
     Array(Vec<Expr>),
     Dict(Vec<(CompactString, Expr)>),
-    Function(Vec<Symbol>, Box<Expr>),
+    Function(Vec<Symbol>, Vec<(Symbol, TypeExpr)>, Box<Expr>),
 
     Variable(Symbol),
 
@@ -66,7 +66,13 @@ impl Debug for Expr {
                 write!(f, "}}")
             }
 
-            Expr::Function(args, expr) => write!(f, "function{args:?} {expr:?}"),
+            Expr::Function(type_params, params, expr) => {
+                if type_params.is_empty() {
+                    write!(f, "function{params:?} {expr:?}")
+                } else {
+                    write!(f, "function[{type_params:?}]{params:?} {expr:?}")
+                }
+            }
 
             Expr::UnaryOp(op, expr) => write!(f, "{op:?}({expr:?})"),
             Expr::BinaryOp(op, lhs, rhs) => write!(f, "{op:?}({lhs:?}, {rhs:?})"),
@@ -111,4 +117,31 @@ pub enum BinaryOp {
     NotEq,
     And,
     Or,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum TypeExpr {
+    Simple(CompactString),
+    Constructor(CompactString, Vec<TypeExpr>),
+}
+
+impl Display for TypeExpr {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        match self {
+            TypeExpr::Simple(name) => write!(f, "{name}"),
+            TypeExpr::Constructor(name, params) => {
+                write!(f, "{name}[")?;
+                let mut first = true;
+                for param in params {
+                    if first {
+                        first = false;
+                    } else {
+                        write!(f, ", ")?;
+                    }
+                    write!(f, "{param}")?;
+                }
+                write!(f, "]")
+            }
+        }
+    }
 }
