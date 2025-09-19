@@ -81,14 +81,14 @@ fn lex(input: &str) -> LexResult {
                 ok(Token::AndAnd, 2)
             } else {
                 ok(Token::Ampersand, 1)
-            }
+            };
         }
         '|' => {
             return if second(input) == Some('|') {
                 ok(Token::OrOr, 2)
             } else {
                 ok(Token::Pipe, 1)
-            }
+            };
         }
         _ => {}
     }

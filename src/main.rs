@@ -7,11 +7,11 @@ mod types;
 mod value;
 
 use std::fs;
-use std::io::{stdin, Read};
+use std::io::{Read, stdin};
 use std::path::{Path, PathBuf};
 
 use clap::Parser;
-use lalrpop_util::{lalrpop_mod, ParseError};
+use lalrpop_util::{ParseError, lalrpop_mod};
 use rustyline::DefaultEditor;
 
 lalrpop_mod!(pub syntax);
